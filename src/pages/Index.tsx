@@ -210,6 +210,14 @@ const Index = () => {
             <div className="hidden gap-6 md:grid md:grid-cols-[2fr_3fr] items-start">
               <div className="sticky top-[65px]">
                 <AIChatPanel messages={messages} onSend={sendMessage} isTyping={isTyping} upsell={upsell} onExpandBudget={expandBudget} />
+                {/* Debug panel */}
+                {Object.keys(filters).length > 0 && (
+                  <details className="mt-2 rounded-lg border border-border bg-muted/50 text-xs">
+                    <summary className="cursor-pointer px-3 py-1.5 text-muted-foreground select-none">🐛 Debug: Active Filters</summary>
+                    <pre className="overflow-x-auto px-3 pb-2 text-[10px] text-muted-foreground">{JSON.stringify(filters, null, 2)}</pre>
+                    <p className="px-3 pb-2 text-[10px] text-muted-foreground">Filtered: {filteredCars.length} / {cars.length} cars</p>
+                  </details>
+                )}
               </div>
               <div>{renderCarGrid("grid-cols-2")}</div>
             </div>
