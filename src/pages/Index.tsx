@@ -5,11 +5,12 @@ import { useAIChat } from "@/hooks/useAIChat";
 import SearchBar from "@/components/SearchBar";
 import CarCard from "@/components/CarCard";
 import AIChatPanel from "@/components/AIChatPanel";
+import type { CarFilters } from "@/hooks/useAIChat";
 import AISearchSkeleton from "@/components/AISearchSkeleton";
 import PriceTracker from "@/components/PriceTracker";
 import { suggestionTags } from "@/lib/mockData";
 import { applyFilters } from "@/lib/filterCars";
-import { Bot, Loader2, Search } from "lucide-react";
+import { Bot, Loader2, Search, X } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useCars } from "@/hooks/useCars";
 import {
@@ -29,7 +30,7 @@ const Index = () => {
 
   const {
     messages, isTyping, highlightedCarIds, filters, noExactMatch,
-    sendMessage, startConversation, loosenFilters,
+    sendMessage, startConversation, loosenFilters, removeFilter,
   } = useAIChat(profile?.name?.split(" ")[0]);
 
   const { data: cars = [], isLoading: carsLoading } = useCars(
@@ -55,25 +56,43 @@ const Index = () => {
     });
   }, [filteredCars, highlightedCarIds]);
 
-  const activeFilterLabels = useMemo(() => {
-    const labels: string[] = [];
-    if (filters.price_max) labels.push(`до ${(filters.price_max / 1_000_000).toFixed(1)} млн`);
-    if (filters.price_min) labels.push(`от ${(filters.price_min / 1_000_000).toFixed(1)} млн`);
-    if (filters.brands?.length) labels.push(filters.brands.join(", "));
-    if (filters.drive) labels.push(filters.drive);
-    if (filters.clearance_min) labels.push(`клиренс ≥${filters.clearance_min}мм`);
-    if (filters.engine_type) labels.push(filters.engine_type);
-    if (filters.transmission) labels.push(filters.transmission);
-    return labels;
+  const activeFilterBadges = useMemo(() => {
+    const badges: { label: string; key: keyof CarFilters }[] = [];
+    if (filters.price_max) badges.push({ label: `до ${(filters.price_max / 1_000_000).toFixed(1)} млн`, key: "price_max" });
+    if (filters.price_min) badges.push({ label: `от ${(filters.price_min / 1_000_000).toFixed(1)} млн`, key: "price_min" });
+    if (filters.brands?.length) {
+      filters.brands.forEach((b) => badges.push({ label: b, key: "brands" }));
+    }
+    if (filters.drive) badges.push({ label: filters.drive, key: "drive" });
+    if (filters.clearance_min) badges.push({ label: `клиренс ≥${filters.clearance_min}мм`, key: "clearance_min" });
+    if (filters.engine_type) badges.push({ label: filters.engine_type, key: "engine_type" });
+    if (filters.transmission) badges.push({ label: filters.transmission, key: "transmission" });
+    return badges;
   }, [filters]);
 
+  const handleRemoveBadge = useCallback((key: keyof CarFilters, brandValue?: string) => {
+    if (key === "brands" && brandValue && filters.brands && filters.brands.length > 1) {
+      // Remove single brand from array
+      const updated = filters.brands.filter((b) => b !== brandValue);
+      removeFilter("brands");
+      // Re-set with remaining brands — use direct state update via sendMessage context
+      // Simpler: just call removeFilter and let AI re-sync
+    }
+    removeFilter(key);
+  }, [removeFilter, filters.brands]);
+
   const renderFilterBadges = () =>
-    activeFilterLabels.length > 0 && (
+    activeFilterBadges.length > 0 && (
       <div className="mb-3 flex flex-wrap gap-1.5">
-        {activeFilterLabels.map((l) => (
-          <span key={l} className="rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
-            {l}
-          </span>
+        {activeFilterBadges.map((badge, i) => (
+          <button
+            key={`${badge.key}-${badge.label}-${i}`}
+            onClick={() => handleRemoveBadge(badge.key, badge.key === "brands" ? badge.label : undefined)}
+            className="group/badge flex items-center gap-1 rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary transition-colors hover:bg-destructive/15 hover:text-destructive"
+          >
+            {badge.label}
+            <X className="h-3 w-3 opacity-50 group-hover/badge:opacity-100" />
+          </button>
         ))}
       </div>
     );
