@@ -22,10 +22,6 @@ const Index = () => {
     }, 1500);
   };
 
-  const handleTagClick = (tag: string) => {
-    handleSearch(tag);
-  };
-
   return (
     <div className="min-h-[calc(100vh-57px)] bg-background transition-colors duration-300">
       <PriceTracker />
@@ -54,7 +50,7 @@ const Index = () => {
               {suggestionTags.map((tag) => (
                 <button
                   key={tag}
-                  onClick={() => handleTagClick(tag)}
+                  onClick={() => handleSearch(tag)}
                   className="rounded-full border border-border bg-card px-4 py-1.5 text-sm text-muted-foreground transition-colors hover:border-primary hover:text-primary"
                 >
                   {tag}
@@ -70,24 +66,17 @@ const Index = () => {
             transition={{ duration: 0.35 }}
             className="mx-auto max-w-7xl px-4 py-6"
           >
-            {/* Top search bar */}
             <div className="mb-6 flex justify-center">
-              <SearchBar
-                onSearch={handleSearch}
-                isLoading={isLoading}
-                compact
-              />
+              <SearchBar onSearch={handleSearch} isLoading={isLoading} compact />
             </div>
 
-            {/* 40/60 split */}
+            {/* Desktop: 40/60 split, Mobile: stacked with collapsible chat */}
             <div className="grid gap-6 md:grid-cols-[2fr_3fr]">
-              {/* Left — AI Chat */}
-              <div className="min-h-[400px]">
+              <div className="min-h-0 md:min-h-[400px]">
                 <AIChatPanel query={searchQuery} />
               </div>
 
-              {/* Right — Car Grid */}
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-2">
+              <div className="grid gap-4 grid-cols-1 sm:grid-cols-2">
                 {mockCars.map((car, i) => (
                   <CarCard key={car.id} car={car} index={i} />
                 ))}
