@@ -4,7 +4,7 @@ import type { CarDB } from "@/hooks/useCars";
 interface ComparisonContextType {
   selectedCars: CarDB[];
   toggleCar: (car: CarDB) => void;
-  isSelected: (id: string) => boolean;
+  isSelected: (id: number) => boolean;
   clearAll: () => void;
 }
 
@@ -30,7 +30,7 @@ export const ComparisonProvider = ({ children }: { children: ReactNode }) => {
     );
   };
 
-  const isSelected = (id: string) => selectedCars.some((c) => c.id === id);
+  const isSelected = (id: number) => selectedCars.some((c) => c.id === id);
   const clearAll = () => setSelectedCars([]);
 
   return (

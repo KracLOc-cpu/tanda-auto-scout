@@ -13,13 +13,20 @@ interface CarCardProps {
   highlighted?: boolean;
 }
 
+const formatPrice = (price: number) => {
+  if (price >= 1_000_000) return `${(price / 1_000_000).toFixed(1)} млн ₸`;
+  return `${price.toLocaleString("ru-RU")} ₸`;
+};
+
 const CarCard = ({ car, index, highlighted }: CarCardProps) => {
   const { toggleCar, isSelected } = useComparison();
   const { user } = useAuth();
   const { isFavorite, toggleFavorite } = useFavorites();
   const selected = isSelected(car.id);
   const [showTestDrive, setShowTestDrive] = useState(false);
-  const fav = isFavorite(car.id);
+  const fav = isFavorite(String(car.id));
+
+  const specs = car.specifications;
 
   return (
     <>
@@ -36,19 +43,19 @@ const CarCard = ({ car, index, highlighted }: CarCardProps) => {
       >
         <div className="relative aspect-[16/10] overflow-hidden bg-muted">
           <img
-            src={car.image}
-            alt={`${car.brand} ${car.name}`}
+            src={car.image_url}
+            alt={`${car.brand} ${car.model}`}
             className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
             loading="lazy"
           />
-          {car.badge && (
+          {car.year && (
             <motion.span
               initial={{ opacity: 0, scale: 0.8 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: 0.3 + index * 0.1 }}
               className="absolute left-3 top-3 rounded-full bg-success/15 px-3 py-1 text-xs font-semibold text-success glow-success"
             >
-              {car.badge}
+              {car.year}
             </motion.span>
           )}
           {highlighted && (
@@ -62,7 +69,7 @@ const CarCard = ({ car, index, highlighted }: CarCardProps) => {
           )}
           {user && (
             <button
-              onClick={() => toggleFavorite(car.id)}
+              onClick={() => toggleFavorite(String(car.id))}
               className="absolute right-3 bottom-3 flex h-8 w-8 items-center justify-center rounded-full bg-background/80 backdrop-blur-sm transition-colors hover:bg-background"
             >
               <Heart
@@ -73,12 +80,12 @@ const CarCard = ({ car, index, highlighted }: CarCardProps) => {
         </div>
         <div className="p-4">
           <p className="text-sm text-muted-foreground">{car.brand}</p>
-          <h3 className="text-lg font-bold text-foreground md:text-base">{car.name}</h3>
-          <p className="mt-1 text-2xl font-bold text-primary md:text-xl">{car.price}</p>
+          <h3 className="text-lg font-bold text-foreground md:text-base">{car.model}</h3>
+          <p className="mt-1 text-2xl font-bold text-primary md:text-xl">{formatPrice(car.price)}</p>
           <div className="mt-2 flex flex-wrap gap-2 text-xs text-muted-foreground">
-            <span className="rounded bg-secondary px-2 py-0.5">{car.engine}</span>
-            <span className="rounded bg-secondary px-2 py-0.5">{car.transmission}</span>
-            <span className="rounded bg-secondary px-2 py-0.5">{car.drive}</span>
+            {specs?.engine && <span className="rounded bg-secondary px-2 py-0.5">{specs.engine}</span>}
+            {specs?.transmission && <span className="rounded bg-secondary px-2 py-0.5">{specs.transmission}</span>}
+            {specs?.drive && <span className="rounded bg-secondary px-2 py-0.5">{specs.drive}</span>}
           </div>
 
           <button
@@ -106,7 +113,7 @@ const CarCard = ({ car, index, highlighted }: CarCardProps) => {
       <TestDriveModal
         open={showTestDrive}
         onClose={() => setShowTestDrive(false)}
-        carName={`${car.brand} ${car.name}`}
+        carName={`${car.brand} ${car.model}`}
       />
     </>
   );

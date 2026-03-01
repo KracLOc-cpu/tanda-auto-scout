@@ -1,28 +1,37 @@
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { externalSupabase } from "@/integrations/supabase/externalClient";
 
 export interface CarDB {
-  id: string;
-  name: string;
+  id: number;
   brand: string;
-  price: string;
-  price_num: number;
-  image: string;
-  badge: string | null;
-  engine: string;
-  transmission: string;
-  drive: string;
-  specifications: Record<string, string>;
+  model: string;
+  price: number;
+  year: number;
+  image_url: string;
+  description: string | null;
+  is_available: boolean;
+  city: string | null;
+  specifications: {
+    drive?: string;
+    engine?: string;
+    transmission?: string;
+    power?: string;
+    fuel_consumption?: string;
+    liquidity_score?: number;
+    features?: string[];
+    [key: string]: unknown;
+  } | null;
 }
 
 export const useCars = (searchQuery?: string) => {
   return useQuery<CarDB[]>({
     queryKey: ["cars", searchQuery],
+    staleTime: 0,
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await externalSupabase
         .from("cars")
         .select("*")
-        .order("price_num", { ascending: true });
+        .order("price", { ascending: true });
       if (error) throw error;
       return (data ?? []) as CarDB[];
     },
