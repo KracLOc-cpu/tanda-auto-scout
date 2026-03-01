@@ -1,5 +1,6 @@
 import { useState, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useAuth } from "@/hooks/useAuth";
 import SearchBar from "@/components/SearchBar";
 import CarCard from "@/components/CarCard";
 import AIChatPanel, { ChatMessage } from "@/components/AIChatPanel";
@@ -27,6 +28,7 @@ const getAIResponse = (text: string): string => {
 };
 
 const Index = () => {
+  const { profile } = useAuth();
   const [appState, setAppState] = useState<AppState>("LANDING");
   const [searchQuery, setSearchQuery] = useState("");
   const [showMobileChat, setShowMobileChat] = useState(false);
@@ -42,16 +44,23 @@ const Index = () => {
     setSearchQuery(query);
     setAppState("SEARCHING");
 
+    const greeting = profile
+      ? `${profile.name.split(" ")[0]}, вот что я нашёл по вашему запросу:\n\n`
+      : "";
+
     const initialMessages: ChatMessage[] = [
       { role: "user", text: query },
-      ...mockChatMessages.map((m) => ({ role: m.role, text: m.text })),
+      ...mockChatMessages.map((m, i) => ({
+        role: m.role,
+        text: i === 0 && m.role === "assistant" ? greeting + m.text : m.text,
+      })),
     ];
 
     setTimeout(() => {
       setChatMessages(initialMessages);
       setAppState("RESULTS");
     }, 2000);
-  }, []);
+  }, [profile]);
 
   const handleChatSend = useCallback((text: string) => {
     setChatMessages((prev) => [...prev, { role: "user", text }]);
