@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { LineChart as LineChartIcon, X } from "lucide-react";
+import { LineChart as LineChartIcon, X, ChevronDown } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   AreaChart,
@@ -16,9 +16,21 @@ import {
 import { mockPriceData, mockPricePredicted } from "@/lib/mockData";
 import { useIsMobile } from "@/hooks/use-mobile";
 
+const modelOptions = [
+  { value: "all", label: "Все модели" },
+  { value: "tucson", label: "Hyundai Tucson" },
+  { value: "tiggo", label: "Chery Tiggo 7 Pro" },
+  { value: "sportage", label: "Kia Sportage" },
+];
+
 const PriceTracker = () => {
   const [open, setOpen] = useState(false);
+  const [selectedModel, setSelectedModel] = useState("all");
   const isMobile = useIsMobile();
+
+  const showTucson = selectedModel === "all" || selectedModel === "tucson";
+  const showTiggo = selectedModel === "all" || selectedModel === "tiggo";
+  const showSportage = selectedModel === "all" || selectedModel === "sportage";
 
   return (
     <>
@@ -54,18 +66,32 @@ const PriceTracker = () => {
                 <h2 className="text-base font-bold text-foreground">Динамика цен</h2>
                 <button
                   onClick={() => setOpen(false)}
-                  className="rounded-full p-1 transition-colors hover:bg-secondary"
+                  className="flex items-center justify-center rounded-lg border border-border bg-secondary p-2 transition-colors hover:bg-muted"
+                  aria-label="Close price tracker"
                 >
-                  <X className="h-5 w-5 text-muted-foreground" />
+                  <X className="h-5 w-5 text-foreground" />
                 </button>
               </div>
 
+              {/* Model selector dropdown */}
               <div className="px-5 pt-4">
-                <input
-                  type="text"
-                  placeholder="Поиск модели..."
-                  className="w-full rounded-lg border border-border bg-card px-3 py-2 text-sm text-foreground outline-none placeholder:text-muted-foreground focus:border-primary"
-                />
+                <label className="mb-1.5 block text-xs font-medium text-muted-foreground">
+                  Сравнить с другой моделью
+                </label>
+                <div className="relative">
+                  <select
+                    value={selectedModel}
+                    onChange={(e) => setSelectedModel(e.target.value)}
+                    className="w-full appearance-none rounded-lg border border-border bg-card px-3 py-2.5 pr-8 text-sm text-foreground outline-none focus:border-primary"
+                  >
+                    {modelOptions.map((opt) => (
+                      <option key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </option>
+                    ))}
+                  </select>
+                  <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                </div>
               </div>
 
               {/* Main chart */}
@@ -102,32 +128,38 @@ const PriceTracker = () => {
                       formatter={(value: number) => [`${value} млн ₸`]}
                     />
                     <Legend wrapperStyle={{ fontSize: 11 }} />
-                    <Area
-                      type="monotone"
-                      dataKey="tucson"
-                      name="Tucson"
-                      stroke="hsl(var(--primary))"
-                      fill="url(#gradTucson)"
-                      strokeWidth={2}
-                    />
-                    <Area
-                      type="monotone"
-                      dataKey="tiggo"
-                      name="Tiggo 7 Pro"
-                      stroke="hsl(var(--success))"
-                      fill="hsl(var(--success))"
-                      fillOpacity={0.1}
-                      strokeWidth={2}
-                    />
-                    <Area
-                      type="monotone"
-                      dataKey="sportage"
-                      name="Sportage"
-                      stroke="hsl(35 100% 50%)"
-                      fill="hsl(35 100% 50%)"
-                      fillOpacity={0.1}
-                      strokeWidth={2}
-                    />
+                    {showTucson && (
+                      <Area
+                        type="monotone"
+                        dataKey="tucson"
+                        name="Tucson"
+                        stroke="hsl(var(--primary))"
+                        fill="url(#gradTucson)"
+                        strokeWidth={2}
+                      />
+                    )}
+                    {showTiggo && (
+                      <Area
+                        type="monotone"
+                        dataKey="tiggo"
+                        name="Tiggo 7 Pro"
+                        stroke="hsl(var(--success))"
+                        fill="hsl(var(--success))"
+                        fillOpacity={0.1}
+                        strokeWidth={2}
+                      />
+                    )}
+                    {showSportage && (
+                      <Area
+                        type="monotone"
+                        dataKey="sportage"
+                        name="Sportage"
+                        stroke="hsl(35 100% 50%)"
+                        fill="hsl(35 100% 50%)"
+                        fillOpacity={0.1}
+                        strokeWidth={2}
+                      />
+                    )}
                   </AreaChart>
                 </ResponsiveContainer>
 
@@ -157,9 +189,9 @@ const PriceTracker = () => {
                       }}
                       formatter={(value: number) => [`${value} млн ₸`]}
                     />
-                    <Line type="monotone" dataKey="tucson" name="Tucson" stroke="hsl(var(--primary))" strokeWidth={2} strokeDasharray="6 3" dot={false} />
-                    <Line type="monotone" dataKey="tiggo" name="Tiggo 7 Pro" stroke="hsl(var(--success))" strokeWidth={2} strokeDasharray="6 3" dot={false} />
-                    <Line type="monotone" dataKey="sportage" name="Sportage" stroke="hsl(35 100% 50%)" strokeWidth={2} strokeDasharray="6 3" dot={false} />
+                    {showTucson && <Line type="monotone" dataKey="tucson" name="Tucson" stroke="hsl(var(--primary))" strokeWidth={2} strokeDasharray="6 3" dot={false} />}
+                    {showTiggo && <Line type="monotone" dataKey="tiggo" name="Tiggo 7 Pro" stroke="hsl(var(--success))" strokeWidth={2} strokeDasharray="6 3" dot={false} />}
+                    {showSportage && <Line type="monotone" dataKey="sportage" name="Sportage" stroke="hsl(35 100% 50%)" strokeWidth={2} strokeDasharray="6 3" dot={false} />}
                   </LineChart>
                 </ResponsiveContainer>
               </div>
