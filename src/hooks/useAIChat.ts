@@ -87,14 +87,19 @@ export function useAIChat(userName?: string) {
     [sendMessage]
   );
 
+  const removeFilter = useCallback((key: keyof CarFilters) => {
+    setFilters((prev) => {
+      const next = { ...prev };
+      delete next[key];
+      return next;
+    });
+  }, []);
+
   const loosenFilters = useCallback(() => {
     setFilters((prev) => {
       const loosened = { ...prev };
-      // Increase price by 20%
       if (loosened.price_max) loosened.price_max = Math.round(loosened.price_max * 1.2);
-      // Lower clearance requirement by 20mm
       if (loosened.clearance_min) loosened.clearance_min = Math.max(0, loosened.clearance_min - 20);
-      // Remove brand restriction
       delete loosened.brands;
       return loosened;
     });
@@ -110,5 +115,6 @@ export function useAIChat(userName?: string) {
     sendMessage,
     startConversation,
     loosenFilters,
+    removeFilter,
   };
 }
