@@ -8,7 +8,14 @@ interface ComparisonContextType {
   clearAll: () => void;
 }
 
-const ComparisonContext = createContext<ComparisonContextType | null>(null);
+const defaultValue: ComparisonContextType = {
+  selectedCars: [],
+  toggleCar: () => {},
+  isSelected: () => false,
+  clearAll: () => {},
+};
+
+const ComparisonContext = createContext<ComparisonContextType>(defaultValue);
 
 export const ComparisonProvider = ({ children }: { children: ReactNode }) => {
   const [selectedCars, setSelectedCars] = useState<Car[]>([]);
@@ -33,8 +40,4 @@ export const ComparisonProvider = ({ children }: { children: ReactNode }) => {
   );
 };
 
-export const useComparison = () => {
-  const ctx = useContext(ComparisonContext);
-  if (!ctx) throw new Error("useComparison must be used within ComparisonProvider");
-  return ctx;
-};
+export const useComparison = () => useContext(ComparisonContext);
