@@ -13,17 +13,14 @@ interface SpecRow {
 const specs: SpecRow[] = [
   { label: "Бренд", key: "brand" },
   { label: "Двигатель", key: "engine" },
+  { label: "Мощность", key: "power" },
   { label: "Трансмиссия", key: "transmission", highlight: true },
   { label: "Привод", key: "drive", highlight: true },
-  { label: "Зимний пакет", key: "winterPackage", highlight: true },
-  { label: "Вентиляция сидений", key: "ventilation", highlight: true },
-  { label: "Камера 360°", key: "camera360", highlight: true },
-  { label: "Подогрев руля", key: "heatedSteeringWheel", highlight: true },
+  { label: "Расход", key: "fuel_consumption" },
   { label: "Цена", key: "price" },
 ];
 
 const getBestValue = (key: string, values: string[]) => {
-  if (["winterPackage", "ventilation", "camera360", "heatedSteeringWheel"].includes(key)) return "Да";
   if (key === "drive") {
     if (values.includes("Полный")) return "Полный";
   }
@@ -32,10 +29,10 @@ const getBestValue = (key: string, values: string[]) => {
 
 const generateVerdict = (cars: CarDB[]) => {
   if (cars.length < 2) return "";
-  const cheapest = cars.reduce((a, b) => (a.price_num < b.price_num ? a : b));
-  const fullDrive = cars.find((c) => c.drive === "Полный");
-  let text = `По совокупности характеристик, **${cheapest.brand} ${cheapest.name}** предлагает лучшую цену.`;
-  if (fullDrive) text += ` **${fullDrive.brand} ${fullDrive.name}** — единственный с полным приводом.`;
+  const cheapest = cars.reduce((a, b) => (a.price < b.price ? a : b));
+  const fullDrive = cars.find((c) => c.specifications?.drive === "Полный");
+  let text = `По совокупности характеристик, **${cheapest.brand} ${cheapest.model}** предлагает лучшую цену.`;
+  if (fullDrive) text += ` **${fullDrive.brand} ${fullDrive.model}** — единственный с полным приводом.`;
   return text;
 };
 
@@ -49,14 +46,13 @@ const ComparisonModal = ({ open, onClose }: ComparisonModalProps) => {
   const [onlyDiff, setOnlyDiff] = useState(false);
 
   const getValue = (car: CarDB, key: string) => {
-    // Check direct car fields first
-    if (key in car && key !== "specifications") return (car as any)[key];
-    // Then check specifications JSON
-    return car.specifications?.[key] ?? "—";
+    if (key === "brand") return car.brand;
+    if (key === "price") return `${(car.price / 1_000_000).toFixed(1)} млн ₸`;
+    return car.specifications?.[key as keyof typeof car.specifications] ?? "—";
   };
 
   const isRowIdentical = (spec: SpecRow) => {
-    const values = selectedCars.map((c) => getValue(c, spec.key));
+    const values = selectedCars.map((c) => String(getValue(c, spec.key)));
     return values.every((v) => v === values[0]);
   };
 
@@ -124,7 +120,7 @@ const ComparisonModal = ({ open, onClose }: ComparisonModalProps) => {
                         </th>
                         {selectedCars.map((car) => (
                           <th key={car.id} className="px-4 py-3 text-left font-semibold text-foreground min-w-[160px]">
-                            {car.brand} {car.name}
+                            {car.brand} {car.model}
                           </th>
                         ))}
                       </tr>
@@ -135,7 +131,7 @@ const ComparisonModal = ({ open, onClose }: ComparisonModalProps) => {
                           const identical = isRowIdentical(spec);
                           if (onlyDiff && identical) return null;
 
-                          const values = selectedCars.map((c) => getValue(c, spec.key));
+                          const values = selectedCars.map((c) => String(getValue(c, spec.key)));
                           const allSame = identical;
                           const best = spec.highlight ? getBestValue(spec.key, values) : null;
 

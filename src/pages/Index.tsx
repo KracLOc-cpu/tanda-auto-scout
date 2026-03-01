@@ -50,8 +50,8 @@ const Index = () => {
 
   const sortedCars = useMemo(() => {
     return [...filteredCars].sort((a, b) => {
-      const aH = highlightedCarIds.includes(a.id) ? 0 : 1;
-      const bH = highlightedCarIds.includes(b.id) ? 0 : 1;
+      const aH = highlightedCarIds.includes(String(a.id)) ? 0 : 1;
+      const bH = highlightedCarIds.includes(String(b.id)) ? 0 : 1;
       return aH - bH;
     });
   }, [filteredCars, highlightedCarIds]);
@@ -130,7 +130,7 @@ const Index = () => {
               key={car.id}
               car={car}
               index={i}
-              highlighted={highlightedCarIds.includes(car.id)}
+              highlighted={highlightedCarIds.includes(String(car.id))}
             />
           ))
         )}
