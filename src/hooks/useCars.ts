@@ -19,18 +19,13 @@ export const useCars = (searchQuery?: string) => {
   return useQuery<CarDB[]>({
     queryKey: ["cars", searchQuery],
     queryFn: async () => {
-      let query = supabase.from("cars").select("*");
-
-      if (searchQuery?.trim()) {
-        const q = `%${searchQuery.trim()}%`;
-        query = query.or(
-          `name.ilike.${q},brand.ilike.${q},engine.ilike.${q},drive.ilike.${q}`
-        );
-      }
-
-      const { data, error } = await query.order("price_num", { ascending: true });
+      const { data, error } = await supabase
+        .from("cars")
+        .select("*")
+        .order("price_num", { ascending: true });
       if (error) throw error;
       return (data ?? []) as CarDB[];
     },
+    enabled: searchQuery !== "__NO_FETCH__",
   });
 };

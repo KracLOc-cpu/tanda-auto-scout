@@ -32,7 +32,7 @@ const Index = () => {
   );
 
   const { data: cars = [], isLoading: carsLoading } = useCars(
-    appState === "RESULTS" ? searchQuery : undefined
+    appState === "RESULTS" ? undefined : "__NO_FETCH__"
   );
 
   const handleSearch = useCallback(
