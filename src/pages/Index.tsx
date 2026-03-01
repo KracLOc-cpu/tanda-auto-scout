@@ -5,9 +5,10 @@ import CarCard from "@/components/CarCard";
 import AIChatPanel, { ChatMessage } from "@/components/AIChatPanel";
 import AISearchSkeleton from "@/components/AISearchSkeleton";
 import PriceTracker from "@/components/PriceTracker";
-import { mockCars, mockChatMessages, mockFollowUpResponses, suggestionTags } from "@/lib/mockData";
-import { Bot } from "lucide-react";
+import { mockChatMessages, mockFollowUpResponses, suggestionTags } from "@/lib/mockData";
+import { Bot, Loader2 } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useCars } from "@/hooks/useCars";
 import {
   Drawer,
   DrawerContent,
@@ -33,12 +34,14 @@ const Index = () => {
   const [isTyping, setIsTyping] = useState(false);
   const isMobile = useIsMobile();
 
-  // Initial search from landing — resets chat with initial context
+  const { data: cars = [], isLoading: carsLoading } = useCars(
+    appState === "RESULTS" ? searchQuery : undefined
+  );
+
   const handleSearch = useCallback((query: string) => {
     setSearchQuery(query);
     setAppState("SEARCHING");
 
-    // Build initial chat history
     const initialMessages: ChatMessage[] = [
       { role: "user", text: query },
       ...mockChatMessages.map((m) => ({ role: m.role, text: m.text })),
@@ -50,7 +53,6 @@ const Index = () => {
     }, 2000);
   }, []);
 
-  // Follow-up message inside chat — appends, no page reset
   const handleChatSend = useCallback((text: string) => {
     setChatMessages((prev) => [...prev, { role: "user", text }]);
     setIsTyping(true);
@@ -144,13 +146,23 @@ const Index = () => {
                 />
               </div>
               <div className="grid gap-4 grid-cols-2">
-                {mockCars.map((car, i) => (
-                  <CarCard key={car.id} car={car} index={i} />
-                ))}
+                {carsLoading ? (
+                  <div className="col-span-2 flex items-center justify-center py-20">
+                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                  </div>
+                ) : cars.length === 0 ? (
+                  <div className="col-span-2 text-center py-20 text-muted-foreground">
+                    Ничего не найдено
+                  </div>
+                ) : (
+                  cars.map((car, i) => (
+                    <CarCard key={car.id} car={car} index={i} />
+                  ))
+                )}
               </div>
             </div>
 
-            {/* Mobile: top search bar + cards */}
+            {/* Mobile */}
             <div className="md:hidden">
               <motion.div
                 initial={{ y: -20, opacity: 0 }}
@@ -160,9 +172,19 @@ const Index = () => {
                 <SearchBar onSearch={handleSearch} compact />
               </motion.div>
               <div className="grid gap-4 grid-cols-1">
-                {mockCars.map((car, i) => (
-                  <CarCard key={car.id} car={car} index={i} />
-                ))}
+                {carsLoading ? (
+                  <div className="flex items-center justify-center py-20">
+                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                  </div>
+                ) : cars.length === 0 ? (
+                  <div className="text-center py-20 text-muted-foreground">
+                    Ничего не найдено
+                  </div>
+                ) : (
+                  cars.map((car, i) => (
+                    <CarCard key={car.id} car={car} index={i} />
+                  ))
+                )}
               </div>
             </div>
 

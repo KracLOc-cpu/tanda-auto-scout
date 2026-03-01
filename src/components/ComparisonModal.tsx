@@ -2,7 +2,7 @@ import { useState } from "react";
 import { X, Bot, Filter } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useComparison } from "@/context/ComparisonContext";
-import { comparisonExtras } from "@/lib/mockData";
+import type { CarDB } from "@/hooks/useCars";
 
 interface SpecRow {
   label: string;
@@ -30,9 +30,9 @@ const getBestValue = (key: string, values: string[]) => {
   return null;
 };
 
-const generateVerdict = (cars: { brand: string; name: string; price: string; drive: string }[]) => {
+const generateVerdict = (cars: CarDB[]) => {
   if (cars.length < 2) return "";
-  const cheapest = cars.reduce((a, b) => (a.price < b.price ? a : b));
+  const cheapest = cars.reduce((a, b) => (a.price_num < b.price_num ? a : b));
   const fullDrive = cars.find((c) => c.drive === "Полный");
   let text = `По совокупности характеристик, **${cheapest.brand} ${cheapest.name}** предлагает лучшую цену.`;
   if (fullDrive) text += ` **${fullDrive.brand} ${fullDrive.name}** — единственный с полным приводом.`;
@@ -48,15 +48,15 @@ const ComparisonModal = ({ open, onClose }: ComparisonModalProps) => {
   const { selectedCars } = useComparison();
   const [onlyDiff, setOnlyDiff] = useState(false);
 
-  const getValue = (carId: string, key: string) => {
-    const car = selectedCars.find((c) => c.id === carId);
-    if (!car) return "";
-    if (key in car) return (car as any)[key];
-    return comparisonExtras[carId]?.[key] ?? "—";
+  const getValue = (car: CarDB, key: string) => {
+    // Check direct car fields first
+    if (key in car && key !== "specifications") return (car as any)[key];
+    // Then check specifications JSON
+    return car.specifications?.[key] ?? "—";
   };
 
   const isRowIdentical = (spec: SpecRow) => {
-    const values = selectedCars.map((c) => getValue(c.id, spec.key));
+    const values = selectedCars.map((c) => getValue(c, spec.key));
     return values.every((v) => v === values[0]);
   };
 
@@ -105,7 +105,6 @@ const ComparisonModal = ({ open, onClose }: ComparisonModalProps) => {
               </div>
             ) : (
               <>
-                {/* AI Verdict */}
                 <div className="mx-5 mt-4 rounded-lg border border-primary/20 bg-primary/5 p-4">
                   <div className="mb-2 flex items-center gap-2">
                     <Bot className="h-4 w-4 text-primary" />
@@ -136,7 +135,7 @@ const ComparisonModal = ({ open, onClose }: ComparisonModalProps) => {
                           const identical = isRowIdentical(spec);
                           if (onlyDiff && identical) return null;
 
-                          const values = selectedCars.map((c) => getValue(c.id, spec.key));
+                          const values = selectedCars.map((c) => getValue(c, spec.key));
                           const allSame = identical;
                           const best = spec.highlight ? getBestValue(spec.key, values) : null;
 
