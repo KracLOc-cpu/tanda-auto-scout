@@ -60,16 +60,31 @@ Deno.serve(async (req) => {
 
     const currentFiltersJson = currentFilters ? JSON.stringify(currentFilters) : "нет";
 
+    // Extract unique brands from DB for smart grouping
+    const allBrands = [...new Set((cars as Car[]).map(c => c.brand))];
+    const chineseBrands = allBrands.filter(b => 
+      ["Chery", "Haval", "Geely", "Lixiang", "Zeekr", "BYD", "Changan", "Jetour", "Exeed", "GAC", "FAW", "Dongfeng", "Tank", "Omoda", "Jaecoo"].includes(b)
+    );
+    const koreanBrands = allBrands.filter(b => ["Hyundai", "Kia", "Genesis", "SsangYong"].includes(b));
+    const japaneseBrands = allBrands.filter(b => ["Toyota", "Honda", "Nissan", "Mazda", "Subaru", "Mitsubishi", "Suzuki", "Lexus"].includes(b));
+    const germanBrands = allBrands.filter(b => ["BMW", "Mercedes-Benz", "Audi", "Volkswagen", "Porsche"].includes(b));
+
     const systemPrompt = `Ты — профессиональный автоконсультант TANDA в Алматы, Казахстан. Ты помогаешь клиентам выбрать автомобиль.
 
-ТЕКУЩИЕ АВТОМОБИЛИ В НАЛИЧИИ:
+ТЕКУЩИЕ АВТОМОБИЛИ В НАЛИЧИИ (всего ${(cars as Car[]).length} авто):
 ${carsContext}
+
+ГРУППИРОВКА БРЕНДОВ ПО СТРАНЕ (используй для запросов типа "китайские авто", "корейцы" и т.д.):
+- Китайские бренды в наличии: ${chineseBrands.length > 0 ? chineseBrands.join(", ") : "нет"}
+- Корейские бренды в наличии: ${koreanBrands.length > 0 ? koreanBrands.join(", ") : "нет"}
+- Японские бренды в наличии: ${japaneseBrands.length > 0 ? japaneseBrands.join(", ") : "нет"}
+- Немецкие бренды в наличии: ${germanBrands.length > 0 ? germanBrands.join(", ") : "нет"}
 
 ТЕКУЩИЕ ФИЛЬТРЫ КЛИЕНТА (накопленные из предыдущих сообщений):
 ${currentFiltersJson}
 
 ПРАВИЛА:
-1. Отвечай ТОЛЬКО на основе автомобилей выше. Не выдумывай модели.
+1. Отвечай ТОЛЬКО на основе автомобилей выше. Не выдумывай модели. Показывай ВСЕ подходящие, а не 1-2.
 2. Говори о ликвидности (остаточная стоимость) в Казахстане.
 3. Упоминай сервисные центры в Алматы при необходимости.
 4. Если спрашивают про горы/бездорожье — рекомендуй полный привод (4WD).
@@ -77,6 +92,19 @@ ${currentFiltersJson}
 6. Будь кратким, дружелюбным, профессиональным.
 7. Используй эмодзи для структуры (🔹, ✅, 💰).
 ${userName ? `8. Обращайся к клиенту по имени: ${userName}.` : ""}
+
+ЗАПРОСЫ ПО СТРАНЕ ПРОИСХОЖДЕНИЯ:
+- Когда клиент просит "китайские авто", "китайцы" — поставь в brands ВСЕ китайские бренды из списка выше: [${chineseBrands.map(b => `"${b}"`).join(", ")}]
+- Когда клиент просит "корейские авто", "корейцы" — поставь brands: [${koreanBrands.map(b => `"${b}"`).join(", ")}]
+- Когда клиент просит "японские авто", "японцы" — поставь brands: [${japaneseBrands.map(b => `"${b}"`).join(", ")}]
+- Когда клиент просит "немецкие авто" — поставь brands: [${germanBrands.map(b => `"${b}"`).join(", ")}]
+- ВАЖНО: Включай ВСЕ подходящие бренды, не ограничивайся 1-2.
+
+ПОИСК ПО СПЕЦИФИКАЦИЯМ:
+- Панорамная крыша: ищи в specifications ключи содержащие "панорам", "panoram", "люк", "sunroof" (регистронезависимо).
+- Вентиляция: ищи "ventilation", "вентиляц".
+- Камера 360: ищи "camera360", "камера", "360".
+- При поиске по спецификациям выводи ВСЕ автомобили у которых данная спецификация = "Да" или содержит нужное значение.
 
 НАКОПИТЕЛЬНАЯ ФИЛЬТРАЦИЯ:
 - Клиент задаёт критерии постепенно. Ты должен ОБНОВЛЯТЬ фильтры, а не заменять целиком.
@@ -153,16 +181,16 @@ ${carIds.map((c) => `${c.id} = ${c.label}`).join("\n")}`;
       text = text.replace(/\[RECOMMEND_IDS:[^\]]+\]/, "").trim();
     }
 
-    // Extract filters
-    const filtersMatch = text.match(/\[FILTERS:\s*(\{[^}]+\})\]/);
+    // Extract filters — handle nested JSON with arrays
+    const filtersMatch = text.match(/\[FILTERS:\s*(\{[\s\S]*?\})\s*\]/);
     let filters: CarFilters | null = null;
     if (filtersMatch) {
       try {
         filters = JSON.parse(filtersMatch[1]);
       } catch (e) {
-        console.error("Failed to parse filters:", e);
+        console.error("Failed to parse filters:", filtersMatch[1], e);
       }
-      text = text.replace(/\[FILTERS:[^\]]+\]/, "").trim();
+      text = text.replace(/\[FILTERS:\s*\{[\s\S]*?\}\s*\]/, "").trim();
     }
 
     // Extract no exact match flag
@@ -172,8 +200,8 @@ ${carIds.map((c) => `${c.id} = ${c.label}`).join("\n")}`;
       text = text.replace(/\[NO_EXACT_MATCH:\s*true\]/, "").trim();
     }
 
-    // Extract upsell data
-    const upsellMatch = text.match(/\[UPSELL:\s*(\{[^}]+\})\]/);
+    // Extract upsell data — handle nested arrays
+    const upsellMatch = text.match(/\[UPSELL:\s*(\{[\s\S]*?\})\s*\]/);
     let upsell = null;
     if (upsellMatch) {
       try {
@@ -181,7 +209,7 @@ ${carIds.map((c) => `${c.id} = ${c.label}`).join("\n")}`;
       } catch (e) {
         console.error("Failed to parse upsell:", e);
       }
-      text = text.replace(/\[UPSELL:[^\]]+\]/, "").trim();
+      text = text.replace(/\[UPSELL:\s*\{[\s\S]*?\}\s*\]/, "").trim();
     }
 
     return new Response(

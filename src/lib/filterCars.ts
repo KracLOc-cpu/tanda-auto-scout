@@ -1,6 +1,21 @@
 import type { CarDB } from "@/hooks/useCars";
 import type { CarFilters } from "@/hooks/useAIChat";
 
+const PANORAMA_KEYS = ["панорам", "panoram", "люк", "sunroof"];
+
+function specHasFeature(specs: Record<string, string>, keywords: string[]): boolean {
+  for (const [key, val] of Object.entries(specs)) {
+    const kLow = key.toLowerCase();
+    const vLow = (val ?? "").toString().toLowerCase();
+    for (const kw of keywords) {
+      if ((kLow.includes(kw) || vLow.includes(kw)) && vLow !== "нет" && vLow !== "no" && vLow !== "false") {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
 export function applyFilters(cars: CarDB[], filters: CarFilters): CarDB[] {
   if (!filters || Object.keys(filters).length === 0) return cars;
 
