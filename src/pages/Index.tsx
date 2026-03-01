@@ -1,12 +1,13 @@
 import { useState, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/hooks/useAuth";
+import { useAIChat } from "@/hooks/useAIChat";
 import SearchBar from "@/components/SearchBar";
 import CarCard from "@/components/CarCard";
-import AIChatPanel, { ChatMessage } from "@/components/AIChatPanel";
+import AIChatPanel from "@/components/AIChatPanel";
 import AISearchSkeleton from "@/components/AISearchSkeleton";
 import PriceTracker from "@/components/PriceTracker";
-import { mockChatMessages, mockFollowUpResponses, suggestionTags } from "@/lib/mockData";
+import { suggestionTags } from "@/lib/mockData";
 import { Bot, Loader2 } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useCars } from "@/hooks/useCars";
@@ -19,59 +20,36 @@ import {
 
 type AppState = "LANDING" | "SEARCHING" | "RESULTS";
 
-const getAIResponse = (text: string): string => {
-  const lower = text.toLowerCase();
-  for (const key of Object.keys(mockFollowUpResponses)) {
-    if (key !== "default" && lower.includes(key)) return mockFollowUpResponses[key];
-  }
-  return mockFollowUpResponses["default"];
-};
-
 const Index = () => {
   const { profile } = useAuth();
   const [appState, setAppState] = useState<AppState>("LANDING");
   const [searchQuery, setSearchQuery] = useState("");
   const [showMobileChat, setShowMobileChat] = useState(false);
-  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
-  const [isTyping, setIsTyping] = useState(false);
   const isMobile = useIsMobile();
+
+  const { messages, isTyping, highlightedCarIds, sendMessage, startConversation } = useAIChat(
+    profile?.name?.split(" ")[0]
+  );
 
   const { data: cars = [], isLoading: carsLoading } = useCars(
     appState === "RESULTS" ? searchQuery : undefined
   );
 
-  const handleSearch = useCallback((query: string) => {
-    setSearchQuery(query);
-    setAppState("SEARCHING");
-
-    const greeting = profile
-      ? `${profile.name.split(" ")[0]}, вот что я нашёл по вашему запросу:\n\n`
-      : "";
-
-    const initialMessages: ChatMessage[] = [
-      { role: "user", text: query },
-      ...mockChatMessages.map((m, i) => ({
-        role: m.role,
-        text: i === 0 && m.role === "assistant" ? greeting + m.text : m.text,
-      })),
-    ];
-
-    setTimeout(() => {
-      setChatMessages(initialMessages);
+  const handleSearch = useCallback(
+    async (query: string) => {
+      setSearchQuery(query);
+      setAppState("SEARCHING");
+      await startConversation(query);
       setAppState("RESULTS");
-    }, 2000);
-  }, [profile]);
+    },
+    [startConversation]
+  );
 
-  const handleChatSend = useCallback((text: string) => {
-    setChatMessages((prev) => [...prev, { role: "user", text }]);
-    setIsTyping(true);
-
-    setTimeout(() => {
-      const response = getAIResponse(text);
-      setChatMessages((prev) => [...prev, { role: "assistant", text: response }]);
-      setIsTyping(false);
-    }, 1200);
-  }, []);
+  const sortedCars = [...cars].sort((a, b) => {
+    const aH = highlightedCarIds.includes(a.id) ? 0 : 1;
+    const bH = highlightedCarIds.includes(b.id) ? 0 : 1;
+    return aH - bH;
+  });
 
   return (
     <div className="min-h-[calc(100vh-57px)] bg-background transition-colors duration-300">
@@ -149,8 +127,8 @@ const Index = () => {
             <div className="hidden gap-6 md:grid md:grid-cols-[2fr_3fr] items-start">
               <div className="sticky top-[65px]">
                 <AIChatPanel
-                  messages={chatMessages}
-                  onSend={handleChatSend}
+                  messages={messages}
+                  onSend={sendMessage}
                   isTyping={isTyping}
                 />
               </div>
@@ -159,13 +137,18 @@ const Index = () => {
                   <div className="col-span-2 flex items-center justify-center py-20">
                     <Loader2 className="h-8 w-8 animate-spin text-primary" />
                   </div>
-                ) : cars.length === 0 ? (
+                ) : sortedCars.length === 0 ? (
                   <div className="col-span-2 text-center py-20 text-muted-foreground">
                     Ничего не найдено
                   </div>
                 ) : (
-                  cars.map((car, i) => (
-                    <CarCard key={car.id} car={car} index={i} />
+                  sortedCars.map((car, i) => (
+                    <CarCard
+                      key={car.id}
+                      car={car}
+                      index={i}
+                      highlighted={highlightedCarIds.includes(car.id)}
+                    />
                   ))
                 )}
               </div>
@@ -185,13 +168,18 @@ const Index = () => {
                   <div className="flex items-center justify-center py-20">
                     <Loader2 className="h-8 w-8 animate-spin text-primary" />
                   </div>
-                ) : cars.length === 0 ? (
+                ) : sortedCars.length === 0 ? (
                   <div className="text-center py-20 text-muted-foreground">
                     Ничего не найдено
                   </div>
                 ) : (
-                  cars.map((car, i) => (
-                    <CarCard key={car.id} car={car} index={i} />
+                  sortedCars.map((car, i) => (
+                    <CarCard
+                      key={car.id}
+                      car={car}
+                      index={i}
+                      highlighted={highlightedCarIds.includes(car.id)}
+                    />
                   ))
                 )}
               </div>
@@ -223,8 +211,8 @@ const Index = () => {
                 </DrawerHeader>
                 <div className="flex flex-col overflow-y-auto px-4 pb-6" style={{ maxHeight: "calc(85vh - 60px)" }}>
                   <AIChatPanel
-                    messages={chatMessages}
-                    onSend={handleChatSend}
+                    messages={messages}
+                    onSend={sendMessage}
                     isTyping={isTyping}
                   />
                 </div>

@@ -1,19 +1,25 @@
 import { useState } from "react";
-import { Plus, Check, Car } from "lucide-react";
+import { Plus, Check, Car, Heart } from "lucide-react";
 import { motion } from "framer-motion";
 import type { CarDB } from "@/hooks/useCars";
 import { useComparison } from "@/context/ComparisonContext";
+import { useFavorites } from "@/hooks/useFavorites";
+import { useAuth } from "@/hooks/useAuth";
 import TestDriveModal from "./TestDriveModal";
 
 interface CarCardProps {
   car: CarDB;
   index: number;
+  highlighted?: boolean;
 }
 
-const CarCard = ({ car, index }: CarCardProps) => {
+const CarCard = ({ car, index, highlighted }: CarCardProps) => {
   const { toggleCar, isSelected } = useComparison();
+  const { user } = useAuth();
+  const { isFavorite, toggleFavorite } = useFavorites();
   const selected = isSelected(car.id);
   const [showTestDrive, setShowTestDrive] = useState(false);
+  const fav = isFavorite(car.id);
 
   return (
     <>
@@ -22,7 +28,11 @@ const CarCard = ({ car, index }: CarCardProps) => {
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.1 * index, duration: 0.4 }}
         whileHover={{ y: -4 }}
-        className="group overflow-hidden rounded-xl border border-border bg-card transition-shadow duration-300 hover:shadow-xl"
+        className={`group overflow-hidden rounded-xl border bg-card transition-all duration-300 hover:shadow-xl ${
+          highlighted
+            ? "border-primary ring-2 ring-primary/30 shadow-lg shadow-primary/10"
+            : "border-border"
+        }`}
       >
         <div className="relative aspect-[16/10] overflow-hidden bg-muted">
           <img
@@ -40,6 +50,25 @@ const CarCard = ({ car, index }: CarCardProps) => {
             >
               {car.badge}
             </motion.span>
+          )}
+          {highlighted && (
+            <motion.span
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="absolute right-3 top-3 rounded-full bg-primary px-3 py-1 text-xs font-semibold text-primary-foreground"
+            >
+              ✨ Рекомендация AI
+            </motion.span>
+          )}
+          {user && (
+            <button
+              onClick={() => toggleFavorite(car.id)}
+              className="absolute right-3 bottom-3 flex h-8 w-8 items-center justify-center rounded-full bg-background/80 backdrop-blur-sm transition-colors hover:bg-background"
+            >
+              <Heart
+                className={`h-4 w-4 transition-colors ${fav ? "fill-destructive text-destructive" : "text-muted-foreground"}`}
+              />
+            </button>
           )}
         </div>
         <div className="p-4">
