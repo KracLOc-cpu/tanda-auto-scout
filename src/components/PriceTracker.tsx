@@ -2,6 +2,8 @@ import { useState } from "react";
 import { LineChart as LineChartIcon, X } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
+  AreaChart,
+  Area,
   LineChart,
   Line,
   XAxis,
@@ -11,20 +13,23 @@ import {
   Legend,
   ResponsiveContainer,
 } from "recharts";
-import { mockPriceData } from "@/lib/mockData";
+import { mockPriceData, mockPricePredicted } from "@/lib/mockData";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 const PriceTracker = () => {
   const [open, setOpen] = useState(false);
+  const isMobile = useIsMobile();
 
   return (
     <>
-      <button
+      <motion.button
         onClick={() => setOpen(true)}
+        whileHover={{ x: 4 }}
         className="fixed left-0 top-1/2 z-40 -translate-y-1/2 rounded-r-lg border border-l-0 border-border bg-card p-2.5 shadow-md transition-colors hover:bg-secondary"
         aria-label="Open price tracker"
       >
         <LineChartIcon className="h-5 w-5 text-primary" />
-      </button>
+      </motion.button>
 
       <AnimatePresence>
         {open && (
@@ -41,7 +46,9 @@ const PriceTracker = () => {
               animate={{ x: 0 }}
               exit={{ x: "-100%" }}
               transition={{ type: "spring", damping: 28, stiffness: 300 }}
-              className="fixed left-0 top-0 z-50 flex h-full w-[min(400px,90vw)] flex-col border-r border-border bg-background shadow-xl"
+              className={`fixed left-0 top-0 z-50 flex h-full flex-col border-r border-border bg-background shadow-xl ${
+                isMobile ? "w-full" : "w-[400px]"
+              }`}
             >
               <div className="flex items-center justify-between border-b border-border px-5 py-4">
                 <h2 className="text-base font-bold text-foreground">Динамика цен</h2>
@@ -61,20 +68,28 @@ const PriceTracker = () => {
                 />
               </div>
 
-              <div className="flex-1 px-2 pt-6">
-                <ResponsiveContainer width="100%" height={300}>
-                  <LineChart data={mockPriceData}>
+              {/* Main chart */}
+              <div className="flex-1 overflow-y-auto px-2 pt-6">
+                <p className="mb-2 px-3 text-xs font-medium text-muted-foreground">Реальные цены (2024-2026)</p>
+                <ResponsiveContainer width="100%" height={220}>
+                  <AreaChart data={mockPriceData}>
+                    <defs>
+                      <linearGradient id="gradTucson" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="hsl(var(--primary))" stopOpacity={0.3} />
+                        <stop offset="100%" stopColor="hsl(var(--primary))" stopOpacity={0} />
+                      </linearGradient>
+                    </defs>
                     <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                     <XAxis
                       dataKey="month"
-                      tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
+                      tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
                       tickLine={false}
                     />
                     <YAxis
-                      tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
+                      tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
                       tickFormatter={(v) => `${v}м`}
                       tickLine={false}
-                      width={40}
+                      width={36}
                     />
                     <Tooltip
                       contentStyle={{
@@ -86,31 +101,65 @@ const PriceTracker = () => {
                       }}
                       formatter={(value: number) => [`${value} млн ₸`]}
                     />
-                    <Legend wrapperStyle={{ fontSize: 12 }} />
-                    <Line
+                    <Legend wrapperStyle={{ fontSize: 11 }} />
+                    <Area
                       type="monotone"
                       dataKey="tucson"
                       name="Tucson"
                       stroke="hsl(var(--primary))"
+                      fill="url(#gradTucson)"
                       strokeWidth={2}
-                      dot={{ r: 3 }}
                     />
-                    <Line
+                    <Area
                       type="monotone"
                       dataKey="tiggo"
                       name="Tiggo 7 Pro"
-                      stroke="hsl(120 100% 40%)"
+                      stroke="hsl(var(--success))"
+                      fill="hsl(var(--success))"
+                      fillOpacity={0.1}
                       strokeWidth={2}
-                      dot={{ r: 3 }}
                     />
-                    <Line
+                    <Area
                       type="monotone"
                       dataKey="sportage"
                       name="Sportage"
                       stroke="hsl(35 100% 50%)"
+                      fill="hsl(35 100% 50%)"
+                      fillOpacity={0.1}
                       strokeWidth={2}
-                      dot={{ r: 3 }}
                     />
+                  </AreaChart>
+                </ResponsiveContainer>
+
+                {/* Predicted chart */}
+                <p className="mb-2 mt-6 px-3 text-xs font-medium text-muted-foreground">Прогноз (+2% тренд)</p>
+                <ResponsiveContainer width="100%" height={160}>
+                  <LineChart data={mockPricePredicted}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                    <XAxis
+                      dataKey="month"
+                      tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
+                      tickLine={false}
+                    />
+                    <YAxis
+                      tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
+                      tickFormatter={(v) => `${v}м`}
+                      tickLine={false}
+                      width={36}
+                    />
+                    <Tooltip
+                      contentStyle={{
+                        background: "hsl(var(--card))",
+                        border: "1px solid hsl(var(--border))",
+                        borderRadius: 8,
+                        fontSize: 12,
+                        color: "hsl(var(--foreground))",
+                      }}
+                      formatter={(value: number) => [`${value} млн ₸`]}
+                    />
+                    <Line type="monotone" dataKey="tucson" name="Tucson" stroke="hsl(var(--primary))" strokeWidth={2} strokeDasharray="6 3" dot={false} />
+                    <Line type="monotone" dataKey="tiggo" name="Tiggo 7 Pro" stroke="hsl(var(--success))" strokeWidth={2} strokeDasharray="6 3" dot={false} />
+                    <Line type="monotone" dataKey="sportage" name="Sportage" stroke="hsl(35 100% 50%)" strokeWidth={2} strokeDasharray="6 3" dot={false} />
                   </LineChart>
                 </ResponsiveContainer>
               </div>
@@ -119,7 +168,7 @@ const PriceTracker = () => {
               <div className="mx-5 mb-4 rounded-lg border border-primary/20 bg-primary/5 p-3">
                 <p className="text-xs font-semibold text-primary">🤖 AI Анализ</p>
                 <p className="mt-1 text-xs text-muted-foreground">
-                  Цены на данные модели стабилизировались. Хорошее время для покупки.
+                  Цены на данные модели стабилизировались. Хорошее время для покупки. Прогноз показывает умеренный рост ~2% в квартал.
                 </p>
               </div>
 

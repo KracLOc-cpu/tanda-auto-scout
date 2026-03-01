@@ -3,23 +3,26 @@ import { motion, AnimatePresence } from "framer-motion";
 import SearchBar from "@/components/SearchBar";
 import CarCard from "@/components/CarCard";
 import AIChatPanel from "@/components/AIChatPanel";
+import AISearchSkeleton from "@/components/AISearchSkeleton";
 import PriceTracker from "@/components/PriceTracker";
 import { mockCars, suggestionTags } from "@/lib/mockData";
+import { Bot } from "lucide-react";
+import { useIsMobile } from "@/hooks/use-mobile";
 
-type Step = "landing" | "results";
+type AppState = "LANDING" | "SEARCHING" | "RESULTS";
 
 const Index = () => {
-  const [step, setStep] = useState<Step>("landing");
-  const [isLoading, setIsLoading] = useState(false);
+  const [appState, setAppState] = useState<AppState>("LANDING");
   const [searchQuery, setSearchQuery] = useState("");
+  const [showMobileChat, setShowMobileChat] = useState(false);
+  const isMobile = useIsMobile();
 
   const handleSearch = (query: string) => {
     setSearchQuery(query);
-    setIsLoading(true);
+    setAppState("SEARCHING");
     setTimeout(() => {
-      setIsLoading(false);
-      setStep("results");
-    }, 1500);
+      setAppState("RESULTS");
+    }, 2000);
   };
 
   return (
@@ -27,61 +30,141 @@ const Index = () => {
       <PriceTracker />
 
       <AnimatePresence mode="wait">
-        {step === "landing" ? (
+        {appState === "LANDING" && (
           <motion.div
             key="landing"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            exit={{ opacity: 0, y: -30 }}
-            transition={{ duration: 0.35 }}
+            exit={{ opacity: 0, y: -40 }}
+            transition={{ duration: 0.4 }}
             className="flex min-h-[calc(100vh-57px)] flex-col items-center justify-center px-4"
           >
-            <h1 className="mb-4 text-center text-4xl font-bold leading-tight text-foreground sm:text-5xl">
+            <motion.h1
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.1 }}
+              className="mb-4 text-center text-4xl font-bold leading-tight text-foreground sm:text-5xl"
+            >
               Выбирай авто головой,
               <br />а не эмоциями
-            </h1>
-            <p className="mb-10 max-w-xl text-center text-base text-muted-foreground sm:text-lg">
+            </motion.h1>
+            <motion.p
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
+              className="mb-10 max-w-xl text-center text-base text-muted-foreground sm:text-lg"
+            >
               Умный помощник, который знает всё о комплектациях дилеров Алматы
-            </p>
+            </motion.p>
 
-            <SearchBar onSearch={handleSearch} isLoading={isLoading} />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.3 }}
+              className="w-full flex justify-center"
+            >
+              <SearchBar onSearch={handleSearch} />
+            </motion.div>
 
-            <div className="mt-6 flex flex-wrap justify-center gap-2">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.5 }}
+              className="mt-6 flex flex-wrap justify-center gap-2"
+            >
               {suggestionTags.map((tag) => (
                 <button
                   key={tag}
                   onClick={() => handleSearch(tag)}
-                  className="rounded-full border border-border bg-card px-4 py-1.5 text-sm text-muted-foreground transition-colors hover:border-primary hover:text-primary"
+                  className="rounded-full border border-border bg-card px-4 py-1.5 text-sm text-muted-foreground transition-all hover:border-primary hover:text-primary hover:shadow-sm"
                 >
                   {tag}
                 </button>
               ))}
-            </div>
+            </motion.div>
           </motion.div>
-        ) : (
+        )}
+
+        {appState === "SEARCHING" && (
+          <AISearchSkeleton key="searching" />
+        )}
+
+        {appState === "RESULTS" && (
           <motion.div
             key="results"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            transition={{ duration: 0.35 }}
+            transition={{ duration: 0.4 }}
             className="mx-auto max-w-7xl px-4 py-6"
           >
-            <div className="mb-6 flex justify-center">
-              <SearchBar onSearch={handleSearch} isLoading={isLoading} compact />
-            </div>
+            {/* Search bar flies to top */}
+            <motion.div
+              initial={{ y: -20, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              className="mb-6 flex justify-center"
+            >
+              <SearchBar onSearch={handleSearch} compact />
+            </motion.div>
 
-            {/* Desktop: 40/60 split, Mobile: stacked with collapsible chat */}
-            <div className="grid gap-6 md:grid-cols-[2fr_3fr]">
-              <div className="min-h-0 md:min-h-[400px]">
+            {/* Desktop: 40/60 split */}
+            <div className="hidden gap-6 md:grid md:grid-cols-[2fr_3fr]">
+              <div className="min-h-[400px]">
                 <AIChatPanel query={searchQuery} />
               </div>
-
-              <div className="grid gap-4 grid-cols-1 sm:grid-cols-2">
+              <div className="grid gap-4 grid-cols-2">
                 {mockCars.map((car, i) => (
                   <CarCard key={car.id} car={car} index={i} />
                 ))}
               </div>
             </div>
+
+            {/* Mobile: cards only, FAB for chat */}
+            <div className="grid gap-4 grid-cols-1 md:hidden">
+              {mockCars.map((car, i) => (
+                <CarCard key={car.id} car={car} index={i} />
+              ))}
+            </div>
+
+            {/* Mobile FAB */}
+            {isMobile && (
+              <motion.button
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                transition={{ delay: 0.5, type: "spring" }}
+                onClick={() => setShowMobileChat(true)}
+                className="fixed bottom-6 right-6 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-primary shadow-lg glow-primary"
+                aria-label="Open AI Chat"
+              >
+                <Bot className="h-6 w-6 text-primary-foreground" />
+              </motion.button>
+            )}
+
+            {/* Mobile chat bottom sheet */}
+            <AnimatePresence>
+              {showMobileChat && isMobile && (
+                <>
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    onClick={() => setShowMobileChat(false)}
+                    className="fixed inset-0 z-50 bg-foreground/20 backdrop-blur-sm"
+                  />
+                  <motion.div
+                    initial={{ y: "100%" }}
+                    animate={{ y: 0 }}
+                    exit={{ y: "100%" }}
+                    transition={{ type: "spring", damping: 28, stiffness: 300 }}
+                    className="fixed bottom-0 left-0 right-0 z-[55] max-h-[80vh] overflow-y-auto rounded-t-2xl border-t border-border bg-card shadow-2xl"
+                  >
+                    <div className="mx-auto mt-2 h-1 w-10 rounded-full bg-muted-foreground/30" />
+                    <div className="p-4">
+                      <AIChatPanel query={searchQuery} />
+                    </div>
+                  </motion.div>
+                </>
+              )}
+            </AnimatePresence>
           </motion.div>
         )}
       </AnimatePresence>

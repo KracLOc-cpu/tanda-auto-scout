@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Bot, MapPin, ChevronDown, ChevronUp } from "lucide-react";
-import { mockChatMessages } from "@/lib/mockData";
+import { Bot, MapPin, ChevronDown, ChevronUp, Navigation } from "lucide-react";
+import { mockChatMessages, dealerLocations } from "@/lib/mockData";
 import { useIsMobile } from "@/hooks/use-mobile";
 
 interface AIChatPanelProps {
@@ -109,15 +109,23 @@ const ChatContent = ({
             exit={{ height: 0, opacity: 0 }}
             className="overflow-hidden rounded-lg border border-border bg-secondary/50 text-sm"
           >
-            <div className="space-y-2 p-3">
-              <div className="flex items-start gap-2">
-                <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" />
-                <span className="text-foreground">пр. Суюнбая 155</span>
-              </div>
-              <div className="flex items-start gap-2">
-                <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" />
-                <span className="text-foreground">Кульджинский тракт 8/4</span>
-              </div>
+            <div className="space-y-1 p-3">
+              {dealerLocations.map((loc, i) => (
+                <motion.div
+                  key={i}
+                  initial={{ opacity: 0, x: -10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: i * 0.1 }}
+                  className="flex items-start gap-2 rounded-lg p-2 transition-colors hover:bg-secondary"
+                >
+                  <Navigation className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" />
+                  <div className="flex-1">
+                    <p className="font-medium text-foreground">{loc.name}</p>
+                    <p className="text-xs text-muted-foreground">{loc.address}</p>
+                  </div>
+                  <span className="shrink-0 text-xs font-medium text-primary">{loc.distance}</span>
+                </motion.div>
+              ))}
             </div>
           </motion.div>
         )}
