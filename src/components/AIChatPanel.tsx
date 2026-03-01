@@ -21,13 +21,13 @@ const AIChatPanel = ({ query, onSearch }: AIChatPanelProps) => {
   };
 
   return (
-    <div className="flex h-full flex-col">
-      {/* Messages */}
-      <div className="flex-1 space-y-4 overflow-y-auto">
+    <div className="flex flex-col">
+      {/* Scrollable messages area */}
+      <div className="max-h-[60vh] space-y-2.5 overflow-y-auto pr-1">
         <motion.div
           initial={{ opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}
-          className="ml-auto max-w-[80%] rounded-2xl rounded-br-sm bg-primary px-4 py-2.5 text-sm text-primary-foreground"
+          className="ml-auto max-w-[80%] rounded-2xl rounded-br-sm bg-primary px-4 py-2 text-sm text-primary-foreground"
         >
           {query}
         </motion.div>
@@ -38,7 +38,7 @@ const AIChatPanel = ({ query, onSearch }: AIChatPanelProps) => {
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: 0.3 + i * 0.4 }}
-            className="mr-auto max-w-[90%] rounded-2xl rounded-bl-sm bg-secondary px-4 py-2.5 text-sm text-secondary-foreground whitespace-pre-line"
+            className="mr-auto max-w-[90%] rounded-2xl rounded-bl-sm bg-secondary px-4 py-2 text-sm text-secondary-foreground whitespace-pre-line"
           >
             {msg.text}
           </motion.div>
@@ -96,14 +96,14 @@ const AIChatPanel = ({ query, onSearch }: AIChatPanelProps) => {
         </motion.div>
       </div>
 
-      {/* Bottom chat input */}
+      {/* Chat input — directly below messages, no gap */}
       {onSearch && (
         <motion.form
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.6 }}
           onSubmit={handleSubmit}
-          className="mt-4 flex items-center gap-2 rounded-xl border border-border bg-background p-2"
+          className="mt-2.5 flex items-center gap-2 rounded-xl border border-border bg-background p-2"
         >
           <input
             type="text"

@@ -103,9 +103,9 @@ const Index = () => {
             transition={{ duration: 0.4 }}
             className="mx-auto max-w-7xl px-4 py-6"
           >
-            {/* Desktop: 40/60 split — search bar is inside the chat panel now */}
-            <div className="hidden gap-6 md:grid md:grid-cols-[2fr_3fr]">
-              <div className="flex min-h-[500px] flex-col">
+            {/* Desktop: 40/60 split — chat container is compact, not full-height */}
+            <div className="hidden gap-6 md:grid md:grid-cols-[2fr_3fr] items-start">
+              <div className="sticky top-[65px]">
                 <AIChatPanel query={searchQuery} onSearch={handleSearch} />
               </div>
               <div className="grid gap-4 grid-cols-2">
@@ -131,18 +131,17 @@ const Index = () => {
               </div>
             </div>
 
-            {/* Mobile FAB for AI Chat — with pulsing ring */}
+            {/* Mobile FAB — pulsing immediately on mount */}
             {isMobile && (
               <motion.button
                 initial={{ scale: 0 }}
                 animate={{ scale: 1 }}
-                transition={{ delay: 0.5, type: "spring" }}
+                transition={{ delay: 0.1, type: "spring" }}
                 onClick={() => setShowMobileChat(true)}
                 className="fixed bottom-6 right-6 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-primary shadow-lg glow-primary"
                 aria-label="Open AI Chat"
               >
                 <Bot className="h-6 w-6 text-primary-foreground" />
-                {/* Pulsing ring */}
                 <span className="absolute inset-0 animate-fab-ping rounded-full bg-primary/40" />
               </motion.button>
             )}
