@@ -29,8 +29,8 @@ const Index = () => {
   const isMobile = useIsMobile();
 
   const {
-    messages, isTyping, highlightedCarIds, filters, noExactMatch,
-    sendMessage, startConversation, loosenFilters, removeFilter,
+    messages, isTyping, highlightedCarIds, filters, noExactMatch, upsell,
+    sendMessage, startConversation, loosenFilters, removeFilter, expandBudget,
   } = useAIChat(profile?.name?.split(" ")[0]);
 
   const { data: cars = [], isLoading: carsLoading } = useCars(
@@ -209,7 +209,7 @@ const Index = () => {
             {/* Desktop */}
             <div className="hidden gap-6 md:grid md:grid-cols-[2fr_3fr] items-start">
               <div className="sticky top-[65px]">
-                <AIChatPanel messages={messages} onSend={sendMessage} isTyping={isTyping} />
+                <AIChatPanel messages={messages} onSend={sendMessage} isTyping={isTyping} upsell={upsell} onExpandBudget={expandBudget} />
               </div>
               <div>{renderCarGrid("grid-cols-2")}</div>
             </div>
@@ -250,7 +250,7 @@ const Index = () => {
                   </DrawerTitle>
                 </DrawerHeader>
                 <div className="flex flex-col overflow-y-auto px-4 pb-6" style={{ maxHeight: "calc(85vh - 60px)" }}>
-                  <AIChatPanel messages={messages} onSend={sendMessage} isTyping={isTyping} />
+                  <AIChatPanel messages={messages} onSend={sendMessage} isTyping={isTyping} upsell={upsell} onExpandBudget={expandBudget} />
                 </div>
               </DrawerContent>
             </Drawer>

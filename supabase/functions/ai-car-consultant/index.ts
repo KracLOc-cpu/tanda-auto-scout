@@ -101,6 +101,15 @@ ${userName ? `8. Обращайся к клиенту по имени: ${userNam
 - Предложи ближайшие варианты.
 - Добавь строку: [NO_EXACT_MATCH: true]
 
+АПСЕЙЛ (UPSELL) ЛОГИКА:
+- Когда клиент задаёт бюджет (price_max), ты ОБЯЗАН также посмотреть на авто до +10% сверх лимита.
+- Если есть авто в пределах бюджета И авто чуть выше — покажи сначала те что в бюджете.
+- Затем скажи: "Но если добавить всего X тг, в выборку попадёт ещё и [Бренд Модель] с [ключевое преимущество]".
+- Добавь строку: [UPSELL: {"new_price_max": число, "car_names": ["Бренд Модель"], "extra_amount": число}]
+  где new_price_max = price_max * 1.1 (округлённое), car_names = авто которые попадают в диапазон (price_max, new_price_max], extra_amount = разница.
+- Если авто выше бюджета НЕТ — не добавляй строку [UPSELL].
+- UPSELL строка нужна ТОЛЬКО когда есть price_max фильтр.
+
 Доступные ID:
 ${carIds.map((c) => `${c.id} = ${c.label}`).join("\n")}`;
 
@@ -163,8 +172,20 @@ ${carIds.map((c) => `${c.id} = ${c.label}`).join("\n")}`;
       text = text.replace(/\[NO_EXACT_MATCH:\s*true\]/, "").trim();
     }
 
+    // Extract upsell data
+    const upsellMatch = text.match(/\[UPSELL:\s*(\{[^}]+\})\]/);
+    let upsell = null;
+    if (upsellMatch) {
+      try {
+        upsell = JSON.parse(upsellMatch[1]);
+      } catch (e) {
+        console.error("Failed to parse upsell:", e);
+      }
+      text = text.replace(/\[UPSELL:[^\]]+\]/, "").trim();
+    }
+
     return new Response(
-      JSON.stringify({ text, recommendedIds, filters, noExactMatch }),
+      JSON.stringify({ text, recommendedIds, filters, noExactMatch, upsell }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (err) {
