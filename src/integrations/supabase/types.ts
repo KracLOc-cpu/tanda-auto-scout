@@ -59,6 +59,35 @@ export type Database = {
         }
         Relationships: []
       }
+      favorites: {
+        Row: {
+          car_id: string
+          created_at: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          car_id: string
+          created_at?: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          car_id?: string
+          created_at?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "favorites_car_id_fkey"
+            columns: ["car_id"]
+            isOneToOne: false
+            referencedRelation: "cars"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
