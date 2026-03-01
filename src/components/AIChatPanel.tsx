@@ -8,13 +8,21 @@ export interface ChatMessage {
   text: string;
 }
 
+export interface UpsellDisplay {
+  new_price_max: number;
+  car_names: string[];
+  extra_amount: number;
+}
+
 interface AIChatPanelProps {
   messages: ChatMessage[];
   onSend?: (text: string) => void;
   isTyping?: boolean;
+  upsell?: UpsellDisplay | null;
+  onExpandBudget?: () => void;
 }
 
-const AIChatPanel = ({ messages, onSend, isTyping }: AIChatPanelProps) => {
+const AIChatPanel = ({ messages, onSend, isTyping, upsell, onExpandBudget }: AIChatPanelProps) => {
   const [showRoutes, setShowRoutes] = useState(false);
   const [inputValue, setInputValue] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -69,6 +77,22 @@ const AIChatPanel = ({ messages, onSend, isTyping }: AIChatPanelProps) => {
               <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-muted-foreground [animation-delay:150ms]" />
               <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-muted-foreground [animation-delay:300ms]" />
             </span>
+          </motion.div>
+        )}
+
+        {/* Upsell button */}
+        {upsell && !isTyping && onExpandBudget && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mt-1"
+          >
+            <button
+              onClick={onExpandBudget}
+              className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+            >
+              💰 Показать варианты +{(upsell.extra_amount / 1_000).toFixed(0)}к к бюджету
+            </button>
           </motion.div>
         )}
 

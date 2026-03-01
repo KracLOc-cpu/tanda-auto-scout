@@ -12,12 +12,19 @@ export interface CarFilters {
   engine_type?: string | null;
 }
 
+export interface UpsellData {
+  new_price_max: number;
+  car_names: string[];
+  extra_amount: number;
+}
+
 export function useAIChat(userName?: string) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isTyping, setIsTyping] = useState(false);
   const [highlightedCarIds, setHighlightedCarIds] = useState<string[]>([]);
   const [filters, setFilters] = useState<CarFilters>({});
   const [noExactMatch, setNoExactMatch] = useState(false);
+  const [upsell, setUpsell] = useState<UpsellData | null>(null);
 
   const sendMessage = useCallback(
     async (text: string) => {
@@ -25,6 +32,7 @@ export function useAIChat(userName?: string) {
       setMessages((prev) => [...prev, userMsg]);
       setIsTyping(true);
       setNoExactMatch(false);
+      setUpsell(null);
 
       try {
         const { data, error } = await supabase.functions.invoke("ai-car-consultant", {
@@ -63,6 +71,10 @@ export function useAIChat(userName?: string) {
         if (data.noExactMatch) {
           setNoExactMatch(true);
         }
+
+        if (data.upsell) {
+          setUpsell(data.upsell);
+        }
       } catch (err) {
         console.error("AI chat error:", err);
         setMessages((prev) => [
@@ -82,6 +94,7 @@ export function useAIChat(userName?: string) {
       setHighlightedCarIds([]);
       setFilters({});
       setNoExactMatch(false);
+      setUpsell(null);
       await sendMessage(query);
     },
     [sendMessage]
@@ -106,15 +119,23 @@ export function useAIChat(userName?: string) {
     setNoExactMatch(false);
   }, []);
 
+  const expandBudget = useCallback(() => {
+    if (!upsell) return;
+    setFilters((prev) => ({ ...prev, price_max: upsell.new_price_max }));
+    setUpsell(null);
+  }, [upsell]);
+
   return {
     messages,
     isTyping,
     highlightedCarIds,
     filters,
     noExactMatch,
+    upsell,
     sendMessage,
     startConversation,
     loosenFilters,
     removeFilter,
+    expandBudget,
   };
 }
