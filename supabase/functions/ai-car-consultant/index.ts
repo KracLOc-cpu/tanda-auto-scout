@@ -23,15 +23,24 @@ interface Car {
   specifications: Record<string, string> | null;
 }
 
+export interface CarFilters {
+  price_max?: number | null;
+  price_min?: number | null;
+  brands?: string[] | null;
+  drive?: string | null;
+  transmission?: string | null;
+  clearance_min?: number | null;
+  engine_type?: string | null;
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const { message, history, userName } = await req.json();
+    const { message, history, userName, currentFilters } = await req.json();
 
-    // Fetch all cars from DB
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
     const { data: cars, error } = await supabase
       .from("cars")
@@ -43,16 +52,21 @@ Deno.serve(async (req) => {
     const carsContext = (cars as Car[])
       .map(
         (c) =>
-          `- ${c.brand} ${c.name}: цена ${c.price}, двигатель ${c.engine}, КПП ${c.transmission}, привод ${c.drive}${c.badge ? `, бэйдж: ${c.badge}` : ""}${c.specifications ? `, доп: ${JSON.stringify(c.specifications)}` : ""}`
+          `- ${c.brand} ${c.name} [ID: ${c.id}]: цена ${c.price} (${c.price_num} тг), двигатель ${c.engine}, КПП ${c.transmission}, привод ${c.drive}${c.badge ? `, бэйдж: ${c.badge}` : ""}${c.specifications ? `, спецификации: ${JSON.stringify(c.specifications)}` : ""}`
       )
       .join("\n");
 
     const carIds = (cars as Car[]).map((c) => ({ id: c.id, label: `${c.brand} ${c.name}` }));
 
+    const currentFiltersJson = currentFilters ? JSON.stringify(currentFilters) : "нет";
+
     const systemPrompt = `Ты — профессиональный автоконсультант TANDA в Алматы, Казахстан. Ты помогаешь клиентам выбрать автомобиль.
 
 ТЕКУЩИЕ АВТОМОБИЛИ В НАЛИЧИИ:
 ${carsContext}
+
+ТЕКУЩИЕ ФИЛЬТРЫ КЛИЕНТА (накопленные из предыдущих сообщений):
+${currentFiltersJson}
 
 ПРАВИЛА:
 1. Отвечай ТОЛЬКО на основе автомобилей выше. Не выдумывай модели.
@@ -64,9 +78,28 @@ ${carsContext}
 7. Используй эмодзи для структуры (🔹, ✅, 💰).
 ${userName ? `8. Обращайся к клиенту по имени: ${userName}.` : ""}
 
-ВАЖНО: В конце ответа добавь строку в формате:
-[RECOMMEND_IDS: id1, id2]
-где id1, id2 — UUID автомобилей, которые ты рекомендуешь в ответе. Если не рекомендуешь конкретную модель, не добавляй эту строку.
+НАКОПИТЕЛЬНАЯ ФИЛЬТРАЦИЯ:
+- Клиент задаёт критерии постепенно. Ты должен ОБНОВЛЯТЬ фильтры, а не заменять целиком.
+- Пример: если клиент сказал "до 11 млн", а потом "клиренс от 210мм" — оба условия должны быть активны.
+- Если клиент говорит "измени цену на 15 млн" — обнови только price_max, остальные фильтры сохрани.
+- Если клиент просит КОНКРЕТНЫЕ бренды (Kia, Hyundai), НЕ показывай другие бренды, если только не предупредишь "также рассмотрите альтернативы".
+
+СТРОГОЕ СООТВЕТСТВИЕ БРЕНДОВ:
+- Если клиент явно указал бренды — фильтруй ТОЛЬКО по ним.
+- Показывай авто других брендов ТОЛЬКО если явно скажешь "в качестве альтернативы предлагаю также посмотреть".
+
+ВАЖНО: В конце ответа добавь ОБЯЗАТЕЛЬНО две строки:
+
+1. [RECOMMEND_IDS: id1, id2]
+где id1, id2 — UUID автомобилей из списка выше, которые ты рекомендуешь. Если не рекомендуешь — не добавляй.
+
+2. [FILTERS: {"price_max": число|null, "price_min": число|null, "brands": ["бренд1"]|null, "drive": "строка"|null, "transmission": "строка"|null, "clearance_min": число|null, "engine_type": "строка"|null}]
+Это ОБНОВЛЁННЫЕ фильтры (объединение текущих + новые из сообщения клиента). Если клиент не менял фильтр — оставь прежнее значение. Если убирает ограничение — поставь null.
+
+ЕСЛИ НИ ОДИН АВТОМОБИЛЬ НЕ ПОДХОДИТ ПОД ВСЕ ФИЛЬТРЫ:
+- Укажи это в тексте: "По вашим критериям (X + Y) точных совпадений нет."
+- Предложи ближайшие варианты.
+- Добавь строку: [NO_EXACT_MATCH: true]
 
 Доступные ID:
 ${carIds.map((c) => `${c.id} = ${c.label}`).join("\n")}`;
@@ -90,7 +123,7 @@ ${carIds.map((c) => `${c.id} = ${c.label}`).join("\n")}`;
         model: "google/gemini-2.5-flash",
         messages,
         temperature: 0.7,
-        max_tokens: 1024,
+        max_tokens: 1500,
       }),
     });
 
@@ -111,8 +144,27 @@ ${carIds.map((c) => `${c.id} = ${c.label}`).join("\n")}`;
       text = text.replace(/\[RECOMMEND_IDS:[^\]]+\]/, "").trim();
     }
 
+    // Extract filters
+    const filtersMatch = text.match(/\[FILTERS:\s*(\{[^}]+\})\]/);
+    let filters: CarFilters | null = null;
+    if (filtersMatch) {
+      try {
+        filters = JSON.parse(filtersMatch[1]);
+      } catch (e) {
+        console.error("Failed to parse filters:", e);
+      }
+      text = text.replace(/\[FILTERS:[^\]]+\]/, "").trim();
+    }
+
+    // Extract no exact match flag
+    const noMatchFlag = text.match(/\[NO_EXACT_MATCH:\s*true\]/);
+    const noExactMatch = !!noMatchFlag;
+    if (noMatchFlag) {
+      text = text.replace(/\[NO_EXACT_MATCH:\s*true\]/, "").trim();
+    }
+
     return new Response(
-      JSON.stringify({ text, recommendedIds }),
+      JSON.stringify({ text, recommendedIds, filters, noExactMatch }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (err) {
