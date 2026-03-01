@@ -44,8 +44,8 @@ const CarCard = ({ car, index }: CarCardProps) => {
         </div>
         <div className="p-4">
           <p className="text-sm text-muted-foreground">{car.brand}</p>
-          <h3 className="text-lg font-bold text-foreground">{car.name}</h3>
-          <p className="mt-1 text-xl font-bold text-primary">{car.price}</p>
+          <h3 className="text-lg font-bold text-foreground md:text-base">{car.name}</h3>
+          <p className="mt-1 text-2xl font-bold text-primary md:text-xl">{car.price}</p>
           <div className="mt-2 flex flex-wrap gap-2 text-xs text-muted-foreground">
             <span className="rounded bg-secondary px-2 py-0.5">{car.engine}</span>
             <span className="rounded bg-secondary px-2 py-0.5">{car.transmission}</span>

@@ -55,12 +55,10 @@ const ComparisonModal = ({ open, onClose }: ComparisonModalProps) => {
     return comparisonExtras[carId]?.[key] ?? "—";
   };
 
-  const filteredSpecs = onlyDiff
-    ? specs.filter((spec) => {
-        const values = selectedCars.map((c) => getValue(c.id, spec.key));
-        return !values.every((v) => v === values[0]);
-      })
-    : specs;
+  const isRowIdentical = (spec: SpecRow) => {
+    const values = selectedCars.map((c) => getValue(c.id, spec.key));
+    return values.every((v) => v === values[0]);
+  };
 
   return (
     <AnimatePresence>
@@ -133,34 +131,46 @@ const ComparisonModal = ({ open, onClose }: ComparisonModalProps) => {
                       </tr>
                     </thead>
                     <tbody>
-                      {filteredSpecs.map((spec) => {
-                        const values = selectedCars.map((c) => getValue(c.id, spec.key));
-                        const allSame = values.every((v) => v === values[0]);
-                        const best = spec.highlight ? getBestValue(spec.key, values) : null;
+                      <AnimatePresence initial={false}>
+                        {specs.map((spec) => {
+                          const identical = isRowIdentical(spec);
+                          if (onlyDiff && identical) return null;
 
-                        return (
-                          <tr key={spec.key} className="border-b border-border last:border-0">
-                            <td className="sticky left-0 z-[5] bg-card px-4 py-3 font-medium text-muted-foreground">
-                              {spec.label}
-                            </td>
-                            {values.map((val, i) => {
-                              const isBest = spec.highlight && !allSame && val === best;
-                              return (
-                                <td
-                                  key={i}
-                                  className={`px-4 py-3 text-foreground ${
-                                    isBest
-                                      ? "border-l-4 border-l-success bg-success/10"
-                                      : ""
-                                  }`}
-                                >
-                                  {val}
-                                </td>
-                              );
-                            })}
-                          </tr>
-                        );
-                      })}
+                          const values = selectedCars.map((c) => getValue(c.id, spec.key));
+                          const allSame = identical;
+                          const best = spec.highlight ? getBestValue(spec.key, values) : null;
+
+                          return (
+                            <motion.tr
+                              key={spec.key}
+                              initial={onlyDiff ? { opacity: 0, height: 0 } : false}
+                              animate={{ opacity: 1, height: "auto" }}
+                              exit={{ opacity: 0, height: 0 }}
+                              transition={{ duration: 0.25 }}
+                              className="border-b border-border last:border-0"
+                            >
+                              <td className="sticky left-0 z-[5] bg-card px-4 py-3 font-medium text-muted-foreground">
+                                {spec.label}
+                              </td>
+                              {values.map((val, i) => {
+                                const isBest = spec.highlight && !allSame && val === best;
+                                return (
+                                  <td
+                                    key={i}
+                                    className={`px-4 py-3 text-foreground ${
+                                      isBest
+                                        ? "border-l-4 border-l-success bg-success/10"
+                                        : ""
+                                    }`}
+                                  >
+                                    {val}
+                                  </td>
+                                );
+                              })}
+                            </motion.tr>
+                          );
+                        })}
+                      </AnimatePresence>
                     </tbody>
                   </table>
                 </div>

@@ -86,19 +86,46 @@ const TestDriveModal = ({ open, onClose, carName }: TestDriveModalProps) => {
                 animate={{ scale: 1, opacity: 1 }}
                 className="flex flex-col items-center gap-4 py-8 text-center"
               >
-                <div className="flex h-14 w-14 items-center justify-center rounded-full bg-success/10">
-                  <Check className="h-7 w-7 text-success" />
-                </div>
-                <h3 className="text-lg font-bold text-foreground">Заявка отправлена!</h3>
-                <p className="text-sm text-muted-foreground">
+                {/* Animated checkmark */}
+                <motion.div
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  transition={{ type: "spring", stiffness: 200, damping: 12, delay: 0.1 }}
+                  className="flex h-16 w-16 items-center justify-center rounded-full bg-success/15"
+                >
+                  <motion.div
+                    initial={{ pathLength: 0, opacity: 0 }}
+                    animate={{ pathLength: 1, opacity: 1 }}
+                    transition={{ delay: 0.3, duration: 0.4 }}
+                  >
+                    <Check className="h-8 w-8 text-success" strokeWidth={3} />
+                  </motion.div>
+                </motion.div>
+                <motion.h3
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.4 }}
+                  className="text-lg font-bold text-foreground"
+                >
+                  Заявка отправлена!
+                </motion.h3>
+                <motion.p
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.5 }}
+                  className="text-sm text-muted-foreground"
+                >
                   Менеджер свяжется с вами в течение 30 минут для подтверждения тест-драйва {carName}.
-                </p>
-                <button
+                </motion.p>
+                <motion.button
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.6 }}
                   onClick={handleClose}
                   className="mt-2 rounded-lg bg-primary px-6 py-2.5 text-sm font-medium text-primary-foreground hover:bg-primary/90"
                 >
                   Закрыть
-                </button>
+                </motion.button>
               </motion.div>
             ) : (
               <>

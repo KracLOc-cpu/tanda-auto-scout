@@ -8,6 +8,12 @@ import PriceTracker from "@/components/PriceTracker";
 import { mockCars, suggestionTags } from "@/lib/mockData";
 import { Bot } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
+import {
+  Drawer,
+  DrawerContent,
+  DrawerHeader,
+  DrawerTitle,
+} from "@/components/ui/drawer";
 
 type AppState = "LANDING" | "SEARCHING" | "RESULTS";
 
@@ -97,7 +103,6 @@ const Index = () => {
             transition={{ duration: 0.4 }}
             className="mx-auto max-w-7xl px-4 py-6"
           >
-            {/* Search bar flies to top */}
             <motion.div
               initial={{ y: -20, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
@@ -118,14 +123,14 @@ const Index = () => {
               </div>
             </div>
 
-            {/* Mobile: cards only, FAB for chat */}
+            {/* Mobile: cards only */}
             <div className="grid gap-4 grid-cols-1 md:hidden">
               {mockCars.map((car, i) => (
                 <CarCard key={car.id} car={car} index={i} />
               ))}
             </div>
 
-            {/* Mobile FAB */}
+            {/* Mobile FAB for AI Chat */}
             {isMobile && (
               <motion.button
                 initial={{ scale: 0 }}
@@ -139,32 +144,20 @@ const Index = () => {
               </motion.button>
             )}
 
-            {/* Mobile chat bottom sheet */}
-            <AnimatePresence>
-              {showMobileChat && isMobile && (
-                <>
-                  <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    onClick={() => setShowMobileChat(false)}
-                    className="fixed inset-0 z-50 bg-foreground/20 backdrop-blur-sm"
-                  />
-                  <motion.div
-                    initial={{ y: "100%" }}
-                    animate={{ y: 0 }}
-                    exit={{ y: "100%" }}
-                    transition={{ type: "spring", damping: 28, stiffness: 300 }}
-                    className="fixed bottom-0 left-0 right-0 z-[55] max-h-[80vh] overflow-y-auto rounded-t-2xl border-t border-border bg-card shadow-2xl"
-                  >
-                    <div className="mx-auto mt-2 h-1 w-10 rounded-full bg-muted-foreground/30" />
-                    <div className="p-4">
-                      <AIChatPanel query={searchQuery} />
-                    </div>
-                  </motion.div>
-                </>
-              )}
-            </AnimatePresence>
+            {/* Mobile chat bottom drawer using vaul */}
+            <Drawer open={showMobileChat} onOpenChange={setShowMobileChat}>
+              <DrawerContent className="max-h-[85vh]">
+                <DrawerHeader className="pb-0">
+                  <DrawerTitle className="flex items-center gap-2 text-base">
+                    <Bot className="h-5 w-5 text-primary" />
+                    TANDA AI
+                  </DrawerTitle>
+                </DrawerHeader>
+                <div className="overflow-y-auto px-4 pb-6">
+                  <AIChatPanel query={searchQuery} />
+                </div>
+              </DrawerContent>
+            </Drawer>
           </motion.div>
         )}
       </AnimatePresence>
