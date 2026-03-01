@@ -1,9 +1,9 @@
 import { createContext, useContext, useState, ReactNode } from "react";
-import type { Car } from "@/lib/mockData";
+import type { CarDB } from "@/hooks/useCars";
 
 interface ComparisonContextType {
-  selectedCars: Car[];
-  toggleCar: (car: Car) => void;
+  selectedCars: CarDB[];
+  toggleCar: (car: CarDB) => void;
   isSelected: (id: string) => boolean;
   clearAll: () => void;
 }
@@ -18,9 +18,9 @@ const defaultValue: ComparisonContextType = {
 const ComparisonContext = createContext<ComparisonContextType>(defaultValue);
 
 export const ComparisonProvider = ({ children }: { children: ReactNode }) => {
-  const [selectedCars, setSelectedCars] = useState<Car[]>([]);
+  const [selectedCars, setSelectedCars] = useState<CarDB[]>([]);
 
-  const toggleCar = (car: Car) => {
+  const toggleCar = (car: CarDB) => {
     setSelectedCars((prev) =>
       prev.find((c) => c.id === car.id)
         ? prev.filter((c) => c.id !== car.id)

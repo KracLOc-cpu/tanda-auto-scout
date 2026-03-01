@@ -1,12 +1,12 @@
 import { useState } from "react";
 import { Plus, Check, Car } from "lucide-react";
 import { motion } from "framer-motion";
-import type { Car as CarType } from "@/lib/mockData";
+import type { CarDB } from "@/hooks/useCars";
 import { useComparison } from "@/context/ComparisonContext";
 import TestDriveModal from "./TestDriveModal";
 
 interface CarCardProps {
-  car: CarType;
+  car: CarDB;
   index: number;
 }
 

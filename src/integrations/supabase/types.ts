@@ -14,7 +14,51 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      cars: {
+        Row: {
+          badge: string | null
+          brand: string
+          created_at: string
+          drive: string
+          engine: string
+          id: string
+          image: string
+          name: string
+          price: string
+          price_num: number
+          specifications: Json | null
+          transmission: string
+        }
+        Insert: {
+          badge?: string | null
+          brand: string
+          created_at?: string
+          drive: string
+          engine: string
+          id?: string
+          image: string
+          name: string
+          price: string
+          price_num: number
+          specifications?: Json | null
+          transmission: string
+        }
+        Update: {
+          badge?: string | null
+          brand?: string
+          created_at?: string
+          drive?: string
+          engine?: string
+          id?: string
+          image?: string
+          name?: string
+          price?: string
+          price_num?: number
+          specifications?: Json | null
+          transmission?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
