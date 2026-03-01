@@ -103,18 +103,10 @@ const Index = () => {
             transition={{ duration: 0.4 }}
             className="mx-auto max-w-7xl px-4 py-6"
           >
-            <motion.div
-              initial={{ y: -20, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              className="mb-6 flex justify-center"
-            >
-              <SearchBar onSearch={handleSearch} compact />
-            </motion.div>
-
-            {/* Desktop: 40/60 split */}
+            {/* Desktop: 40/60 split — search bar is inside the chat panel now */}
             <div className="hidden gap-6 md:grid md:grid-cols-[2fr_3fr]">
-              <div className="min-h-[400px]">
-                <AIChatPanel query={searchQuery} />
+              <div className="flex min-h-[500px] flex-col">
+                <AIChatPanel query={searchQuery} onSearch={handleSearch} />
               </div>
               <div className="grid gap-4 grid-cols-2">
                 {mockCars.map((car, i) => (
@@ -123,14 +115,23 @@ const Index = () => {
               </div>
             </div>
 
-            {/* Mobile: cards only */}
-            <div className="grid gap-4 grid-cols-1 md:hidden">
-              {mockCars.map((car, i) => (
-                <CarCard key={car.id} car={car} index={i} />
-              ))}
+            {/* Mobile: top search bar + cards */}
+            <div className="md:hidden">
+              <motion.div
+                initial={{ y: -20, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                className="mb-6 flex justify-center"
+              >
+                <SearchBar onSearch={handleSearch} compact />
+              </motion.div>
+              <div className="grid gap-4 grid-cols-1">
+                {mockCars.map((car, i) => (
+                  <CarCard key={car.id} car={car} index={i} />
+                ))}
+              </div>
             </div>
 
-            {/* Mobile FAB for AI Chat */}
+            {/* Mobile FAB for AI Chat — with pulsing ring */}
             {isMobile && (
               <motion.button
                 initial={{ scale: 0 }}
@@ -141,10 +142,12 @@ const Index = () => {
                 aria-label="Open AI Chat"
               >
                 <Bot className="h-6 w-6 text-primary-foreground" />
+                {/* Pulsing ring */}
+                <span className="absolute inset-0 animate-fab-ping rounded-full bg-primary/40" />
               </motion.button>
             )}
 
-            {/* Mobile chat bottom drawer using vaul */}
+            {/* Mobile chat bottom drawer */}
             <Drawer open={showMobileChat} onOpenChange={setShowMobileChat}>
               <DrawerContent className="max-h-[85vh]">
                 <DrawerHeader className="pb-0">
@@ -153,8 +156,8 @@ const Index = () => {
                     TANDA AI
                   </DrawerTitle>
                 </DrawerHeader>
-                <div className="overflow-y-auto px-4 pb-6">
-                  <AIChatPanel query={searchQuery} />
+                <div className="flex flex-col overflow-y-auto px-4 pb-6" style={{ maxHeight: "calc(85vh - 60px)" }}>
+                  <AIChatPanel query={searchQuery} onSearch={handleSearch} />
                 </div>
               </DrawerContent>
             </Drawer>
