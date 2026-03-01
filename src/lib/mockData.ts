@@ -60,6 +60,12 @@ export const mockChatMessages = [
   },
 ];
 
+export const mockFollowUpResponses: Record<string, string> = {
+  "кредит": "По кредиту для выбранных авто:\n\n🔹 **Hyundai Tucson** — от 89 000 ₸/мес (7 лет, 20% взнос)\n🔹 **Chery Tiggo 7 Pro** — от 68 000 ₸/мес (7 лет, 20% взнос)\n🔹 **Kia Sportage** — от 92 000 ₸/мес (7 лет, 20% взнос)\n\nЛучшие ставки сейчас у Halyk Bank — от 18.9% годовых.",
+  "страховка": "Стоимость КАСКО на первый год:\n\n🔹 Tucson — ~520 000 ₸\n🔹 Tiggo 7 Pro — ~380 000 ₸\n🔹 Sportage — ~540 000 ₸\n\nРекомендую Freedom Finance Insurance — у них скидка 15% при онлайн-оформлении.",
+  "default": "Хороший вопрос! На основе выбранных моделей (Tucson, Tiggo 7 Pro, Sportage) могу сказать следующее:\n\nВсе три автомобиля — отличный выбор в сегменте кроссоверов. Если нужно больше деталей по конкретному параметру, уточните — я помогу!",
+};
+
 export const mockPriceData = [
   { month: "Мар 24", tucson: 12.5, tiggo: 10.2, sportage: 13.8 },
   { month: "Июн 24", tucson: 12.8, tiggo: 10.5, sportage: 14.1 },

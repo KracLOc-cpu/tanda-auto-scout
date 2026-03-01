@@ -1,11 +1,11 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import SearchBar from "@/components/SearchBar";
 import CarCard from "@/components/CarCard";
-import AIChatPanel from "@/components/AIChatPanel";
+import AIChatPanel, { ChatMessage } from "@/components/AIChatPanel";
 import AISearchSkeleton from "@/components/AISearchSkeleton";
 import PriceTracker from "@/components/PriceTracker";
-import { mockCars, suggestionTags } from "@/lib/mockData";
+import { mockCars, mockChatMessages, mockFollowUpResponses, suggestionTags } from "@/lib/mockData";
 import { Bot } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import {
@@ -17,19 +17,50 @@ import {
 
 type AppState = "LANDING" | "SEARCHING" | "RESULTS";
 
+const getAIResponse = (text: string): string => {
+  const lower = text.toLowerCase();
+  for (const key of Object.keys(mockFollowUpResponses)) {
+    if (key !== "default" && lower.includes(key)) return mockFollowUpResponses[key];
+  }
+  return mockFollowUpResponses["default"];
+};
+
 const Index = () => {
   const [appState, setAppState] = useState<AppState>("LANDING");
   const [searchQuery, setSearchQuery] = useState("");
   const [showMobileChat, setShowMobileChat] = useState(false);
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
+  const [isTyping, setIsTyping] = useState(false);
   const isMobile = useIsMobile();
 
-  const handleSearch = (query: string) => {
+  // Initial search from landing — resets chat with initial context
+  const handleSearch = useCallback((query: string) => {
     setSearchQuery(query);
     setAppState("SEARCHING");
+
+    // Build initial chat history
+    const initialMessages: ChatMessage[] = [
+      { role: "user", text: query },
+      ...mockChatMessages.map((m) => ({ role: m.role, text: m.text })),
+    ];
+
     setTimeout(() => {
+      setChatMessages(initialMessages);
       setAppState("RESULTS");
     }, 2000);
-  };
+  }, []);
+
+  // Follow-up message inside chat — appends, no page reset
+  const handleChatSend = useCallback((text: string) => {
+    setChatMessages((prev) => [...prev, { role: "user", text }]);
+    setIsTyping(true);
+
+    setTimeout(() => {
+      const response = getAIResponse(text);
+      setChatMessages((prev) => [...prev, { role: "assistant", text: response }]);
+      setIsTyping(false);
+    }, 1200);
+  }, []);
 
   return (
     <div className="min-h-[calc(100vh-57px)] bg-background transition-colors duration-300">
@@ -103,10 +134,14 @@ const Index = () => {
             transition={{ duration: 0.4 }}
             className="mx-auto max-w-7xl px-4 py-6"
           >
-            {/* Desktop: 40/60 split — chat container is compact, not full-height */}
+            {/* Desktop: 40/60 split */}
             <div className="hidden gap-6 md:grid md:grid-cols-[2fr_3fr] items-start">
               <div className="sticky top-[65px]">
-                <AIChatPanel query={searchQuery} onSearch={handleSearch} />
+                <AIChatPanel
+                  messages={chatMessages}
+                  onSend={handleChatSend}
+                  isTyping={isTyping}
+                />
               </div>
               <div className="grid gap-4 grid-cols-2">
                 {mockCars.map((car, i) => (
@@ -131,7 +166,7 @@ const Index = () => {
               </div>
             </div>
 
-            {/* Mobile FAB — pulsing immediately on mount */}
+            {/* Mobile FAB */}
             {isMobile && (
               <motion.button
                 initial={{ scale: 0 }}
@@ -146,7 +181,7 @@ const Index = () => {
               </motion.button>
             )}
 
-            {/* Mobile chat bottom drawer */}
+            {/* Mobile chat drawer */}
             <Drawer open={showMobileChat} onOpenChange={setShowMobileChat}>
               <DrawerContent className="max-h-[85vh]">
                 <DrawerHeader className="pb-0">
@@ -156,7 +191,11 @@ const Index = () => {
                   </DrawerTitle>
                 </DrawerHeader>
                 <div className="flex flex-col overflow-y-auto px-4 pb-6" style={{ maxHeight: "calc(85vh - 60px)" }}>
-                  <AIChatPanel query={searchQuery} onSearch={handleSearch} />
+                  <AIChatPanel
+                    messages={chatMessages}
+                    onSend={handleChatSend}
+                    isTyping={isTyping}
+                  />
                 </div>
               </DrawerContent>
             </Drawer>
