@@ -5,8 +5,10 @@ export function applyFilters(cars: CarDB[], filters: CarFilters): CarDB[] {
   if (!filters || Object.keys(filters).length === 0) return cars;
 
   return cars.filter((car) => {
-    if (filters.price_max && car.price > filters.price_max) return false;
-    if (filters.price_min && car.price < filters.price_min) return false;
+    const displayPrice = car.has_promo ? car.best_promo_price! : car.min_price;
+
+    if (filters.price_max && displayPrice > filters.price_max) return false;
+    if (filters.price_min && displayPrice < filters.price_min) return false;
 
     if (filters.brands && filters.brands.length > 0) {
       const matchesBrand = filters.brands.some(
@@ -15,28 +17,33 @@ export function applyFilters(cars: CarDB[], filters: CarFilters): CarDB[] {
       if (!matchesBrand) return false;
     }
 
-    const specs = car.specifications;
-
-    if (filters.drive && specs?.drive) {
-      if (!specs.drive.toLowerCase().includes(filters.drive.toLowerCase())) return false;
-    }
-
-    if (filters.transmission && specs?.transmission) {
-      if (!specs.transmission.toLowerCase().includes(filters.transmission.toLowerCase())) return false;
-    }
-
-    if (filters.clearance_min && specs) {
-      const clearanceKey = Object.keys(specs).find((k) =>
-        k.toLowerCase().includes("клиренс") || k.toLowerCase().includes("clearance") || k.toLowerCase().includes("дорожный просвет")
+    // Check drive_type across trims
+    if (filters.drive) {
+      const hasDrive = car.car_trims?.some(t =>
+        t.drive_type?.toLowerCase().includes(filters.drive!.toLowerCase())
       );
-      if (clearanceKey) {
-        const clearanceVal = parseInt(String(specs[clearanceKey]), 10);
-        if (!isNaN(clearanceVal) && clearanceVal < filters.clearance_min) return false;
-      }
+      if (!hasDrive) return false;
     }
 
-    if (filters.engine_type && specs?.engine) {
-      if (!specs.engine.toLowerCase().includes(filters.engine_type.toLowerCase())) return false;
+    // Check transmission across trims
+    if (filters.transmission) {
+      const hasTrans = car.car_trims?.some(t =>
+        t.transmission?.toLowerCase().includes(filters.transmission!.toLowerCase())
+      );
+      if (!hasTrans) return false;
+    }
+
+    // Clearance from cars table
+    if (filters.clearance_min && car.clearance_mm) {
+      if (car.clearance_mm < filters.clearance_min) return false;
+    }
+
+    // Engine type across trims
+    if (filters.engine_type) {
+      const hasEngine = car.car_trims?.some(t =>
+        t.engine?.toLowerCase().includes(filters.engine_type!.toLowerCase())
+      );
+      if (!hasEngine) return false;
     }
 
     return true;
