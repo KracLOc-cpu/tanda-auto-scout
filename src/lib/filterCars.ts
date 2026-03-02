@@ -20,7 +20,7 @@ export function applyFilters(cars: CarDB[], filters: CarFilters): CarDB[] {
     // Check drive_type across trims
     if (filters.drive) {
       const hasDrive = car.car_trims?.some(t =>
-        t.drive_type?.toLowerCase().includes(filters.drive!.toLowerCase())
+        typeof t.drive_type === 'string' && t.drive_type.toLowerCase().includes(filters.drive!.toLowerCase())
       );
       if (!hasDrive) return false;
     }
@@ -28,7 +28,7 @@ export function applyFilters(cars: CarDB[], filters: CarFilters): CarDB[] {
     // Check transmission across trims
     if (filters.transmission) {
       const hasTrans = car.car_trims?.some(t =>
-        t.transmission?.toLowerCase().includes(filters.transmission!.toLowerCase())
+        typeof t.transmission === 'string' && t.transmission.toLowerCase().includes(filters.transmission!.toLowerCase())
       );
       if (!hasTrans) return false;
     }
