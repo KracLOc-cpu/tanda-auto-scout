@@ -27,7 +27,7 @@ export function useAIChat(userName?: string) {
   const [upsell, setUpsell] = useState<UpsellData | null>(null);
 
   const sendMessage = useCallback(
-    async (text: string) => {
+    async (text: string, overrideFilters?: CarFilters) => {
       const userMsg: ChatMessage = { role: "user", text };
       setMessages((prev) => [...prev, userMsg]);
       setIsTyping(true);
@@ -40,7 +40,7 @@ export function useAIChat(userName?: string) {
             message: text,
             history: [...messages, userMsg].slice(-10),
             userName,
-            currentFilters: filters,
+            currentFilters: overrideFilters ?? filters,
           },
         });
 
@@ -121,9 +121,16 @@ export function useAIChat(userName?: string) {
 
   const expandBudget = useCallback(() => {
     if (!upsell) return;
-    setFilters((prev) => ({ ...prev, price_max: upsell.new_price_max }));
+    const newMax = upsell.new_price_max;
+    const formatted = (newMax / 1_000_000).toFixed(1).replace(".", ",");
+    const newFilters = { ...filters, price_max: newMax };
+    setFilters(newFilters);
     setUpsell(null);
-  }, [upsell]);
+    sendMessage(
+      `Хорошо, готов рассмотреть варианты до ${formatted} млн тенге. Что можешь предложить?`,
+      newFilters
+    );
+  }, [upsell, filters, sendMessage]);
 
   return {
     messages,
