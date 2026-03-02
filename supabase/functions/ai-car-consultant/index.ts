@@ -88,32 +88,32 @@ Deno.serve(async (req) => {
     }).join("\n\n");
 
     const carIds = typedCars.map((c) => ({ id: c.id, label: `${c.brand} ${c.model}` }));
-
-    // Вычисляем ближайшую машину дороже текущего бюджета
-    let upsellHint = "";
+    // Вычисляем ближайшую машину дороже бюджета — СЕРВЕР, не AI
+    let computedUpsell: { new_price_max: number; car_names: string[]; extra_amount: number } | null = null;
     if (currentFilters?.price_max) {
       const budget = currentFilters.price_max;
-      // Собираем все минимальные цены по машинам (с учётом промо)
-      const allOptions: { price: number; label: string }[] = [];
+      const upsellOptions: { price: number; label: string }[] = [];
       for (const car of typedCars) {
         for (const trim of (car.car_trims || [])) {
           const promoActive = trim.promo_price && (!trim.promo_until || trim.promo_until >= now);
           const effectivePrice = promoActive ? trim.promo_price! : trim.price;
           if (effectivePrice > budget) {
-            allOptions.push({ price: effectivePrice, label: `${car.brand} ${car.model} ${trim.trim_name}` });
+            upsellOptions.push({ price: effectivePrice, label: `${car.brand} ${car.model} ${trim.trim_name}` });
           }
         }
       }
-      if (allOptions.length > 0) {
-        allOptions.sort((a, b) => a.price - b.price);
-        const nearest = allOptions[0];
-        const extra = nearest.price - budget;
-        upsellHint = `\nАПСЕЙЛ: если нет машин в бюджете, предложи расширить до ${nearest.price.toLocaleString("ru")} тг (ближайшая: ${nearest.label}, доплата +${extra.toLocaleString("ru")} тг). Используй ТОЧНО эту сумму: [UPSELL: {"new_price_max": ${nearest.price}, "car_names": ["${nearest.label}"], "extra_amount": ${extra}}]`;
-      } else {
-        upsellHint = `\nАПСЕЙЛ: нет машин дороже бюджета, не добавляй [UPSELL].`;
+      if (upsellOptions.length > 0) {
+        upsellOptions.sort((a, b) => a.price - b.price);
+        const nearest = upsellOptions[0];
+        computedUpsell = {
+          new_price_max: nearest.price,
+          car_names: [nearest.label],
+          extra_amount: nearest.price - budget,
+        };
       }
     }
-    const currentFiltersJson = currentFilters ? JSON.stringify(currentFilters) : "нет";
+
+        const currentFiltersJson = currentFilters ? JSON.stringify(currentFilters) : "нет";
 
     const allBrands = [...new Set(typedCars.map((c) => c.brand))];
     const chineseBrands = allBrands.filter((b) =>
@@ -151,7 +151,7 @@ ${userName ? `6. Обращайся к клиенту: ${userName}.` : ""}
 2. [FILTERS: {"price_max": число|null, "price_min": число|null, "brands": ["бренд"]|null, "drive": "строка"|null, "transmission": "строка"|null, "clearance_min": число|null, "engine_type": "строка"|null}]
 
 Если ничего не подходит: [NO_EXACT_MATCH: true]
-${upsellHint}
+
 
 Доступные ID:
 ${carIds.map((c) => `${c.id} = ${c.label}`).join("\n")}`;
@@ -206,12 +206,11 @@ ${carIds.map((c) => `${c.id} = ${c.label}`).join("\n")}`;
     const noExactMatch = !!noMatchFlag;
     if (noMatchFlag) text = text.replace(/\[NO_EXACT_MATCH:\s*true\]/, "").trim();
 
-    const upsellMatch = text.match(/\[UPSELL:\s*(\{[\s\S]*?\})\s*\]/);
-    let upsell = null;
-    if (upsellMatch) {
-      try { upsell = JSON.parse(upsellMatch[1]); } catch (e) { console.error("Parse upsell error:", e); }
-      text = text.replace(/\[UPSELL:\s*\{[\s\S]*?\}\s*\]/, "").trim();
-    }
+    // Убираем [UPSELL] если AI вдруг добавил — мы не используем его версию
+    text = text.replace(/\[UPSELL:\s*\{[\s\S]*?\}\s*\]/g, "").trim();
+
+    // Upsell от сервера: показываем только если нет машин в бюджете
+    const upsell = (noExactMatch || recommendedIds.length === 0) ? computedUpsell : null;
 
     return new Response(
       JSON.stringify({ text, recommendedIds, filters, noExactMatch, upsell, totalCars: typedCars.length }),
