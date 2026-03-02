@@ -13,6 +13,8 @@ import { applyFilters } from "@/lib/filterCars";
 import { Bot, Loader2, Search, X } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useCars } from "@/hooks/useCars";
+import CarDetailModal from "@/components/CarDetailModal";
+import type { CarDB } from "@/hooks/useCars";
 import {
   Drawer,
   DrawerContent,
@@ -26,6 +28,7 @@ const Index = () => {
   const { profile } = useAuth();
   const [appState, setAppState] = useState<AppState>("LANDING");
   const [showMobileChat, setShowMobileChat] = useState(false);
+  const [selectedCar, setSelectedCar] = useState<CarDB | null>(null);
   const isMobile = useIsMobile();
 
   const {
@@ -131,6 +134,7 @@ const Index = () => {
               car={car}
               index={i}
               highlighted={highlightedCarIds.includes(String(car.id))}
+              onOpenDetail={setSelectedCar}
             />
           ))
         )}
@@ -265,6 +269,9 @@ const Index = () => {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Car Detail Modal */}
+      <CarDetailModal car={selectedCar} onClose={() => setSelectedCar(null)} />
     </div>
   );
 };
