@@ -7,8 +7,6 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instantiate createClient with right options
-  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
     PostgrestVersion: "14.4"
   }
@@ -16,67 +14,180 @@ export type Database = {
     Tables: {
       cars: {
         Row: {
-          badge: string | null
-          brand: string
+          id: number
           created_at: string
-          drive: string
-          engine: string
-          id: string
-          image: string
-          name: string
-          price: string
-          price_num: number
-          specifications: Json | null
-          transmission: string
+          brand: string
+          model: string
+          body_type: string | null
+          fuel_type: string | null
+          year: number | null
+          image_url: string | null
+          engine_options: Json | null
+          length_mm: number | null
+          width_mm: number | null
+          height_mm: number | null
+          wheelbase_mm: number | null
+          clearance_mm: number | null
+          cargo_volume_l: number | null
+          fuel_tank_l: number | null
+          max_speed_kmh: number | null
+          fuel_consumption_city: number | null
+          fuel_consumption_highway: number | null
+          fuel_consumption_mixed: number | null
+          range_km: number | null
+          pros: string | null
+          cons: string | null
+          description: string | null
+          liquidity_score: number | null
+          seats_options: number[] | null
+          last_verified_by: string | null
+          last_verified_at: string | null
+          city: string | null
+          is_available: boolean
         }
         Insert: {
-          badge?: string | null
-          brand: string
+          id?: number
           created_at?: string
-          drive: string
-          engine: string
-          id?: string
-          image: string
-          name: string
-          price: string
-          price_num: number
-          specifications?: Json | null
-          transmission: string
+          brand: string
+          model: string
+          body_type?: string | null
+          fuel_type?: string | null
+          year?: number | null
+          image_url?: string | null
+          engine_options?: Json | null
+          length_mm?: number | null
+          width_mm?: number | null
+          height_mm?: number | null
+          wheelbase_mm?: number | null
+          clearance_mm?: number | null
+          cargo_volume_l?: number | null
+          fuel_tank_l?: number | null
+          max_speed_kmh?: number | null
+          fuel_consumption_city?: number | null
+          fuel_consumption_highway?: number | null
+          fuel_consumption_mixed?: number | null
+          range_km?: number | null
+          pros?: string | null
+          cons?: string | null
+          description?: string | null
+          liquidity_score?: number | null
+          seats_options?: number[] | null
+          last_verified_by?: string | null
+          last_verified_at?: string | null
+          city?: string | null
+          is_available?: boolean
         }
         Update: {
-          badge?: string | null
-          brand?: string
+          id?: number
           created_at?: string
-          drive?: string
-          engine?: string
-          id?: string
-          image?: string
-          name?: string
-          price?: string
-          price_num?: number
-          specifications?: Json | null
-          transmission?: string
+          brand?: string
+          model?: string
+          body_type?: string | null
+          fuel_type?: string | null
+          year?: number | null
+          image_url?: string | null
+          engine_options?: Json | null
+          length_mm?: number | null
+          width_mm?: number | null
+          height_mm?: number | null
+          wheelbase_mm?: number | null
+          clearance_mm?: number | null
+          cargo_volume_l?: number | null
+          fuel_tank_l?: number | null
+          max_speed_kmh?: number | null
+          fuel_consumption_city?: number | null
+          fuel_consumption_highway?: number | null
+          fuel_consumption_mixed?: number | null
+          range_km?: number | null
+          pros?: string | null
+          cons?: string | null
+          description?: string | null
+          liquidity_score?: number | null
+          seats_options?: number[] | null
+          last_verified_by?: string | null
+          last_verified_at?: string | null
+          city?: string | null
+          is_available?: boolean
         }
         Relationships: []
       }
-      favorites: {
+      car_trims: {
         Row: {
-          car_id: string
+          id: number
           created_at: string
-          id: string
-          user_id: string
+          car_id: number
+          trim_name: string
+          engine: string | null
+          transmission: string | null
+          drive_type: string | null
+          seats: number | null
+          price: number | null
+          promo_price: number | null
+          promo_until: string | null
+          car_year: number | null
+          features: Json | null
+          is_available: boolean
         }
         Insert: {
-          car_id: string
+          id?: number
           created_at?: string
-          id?: string
-          user_id: string
+          car_id: number
+          trim_name: string
+          engine?: string | null
+          transmission?: string | null
+          drive_type?: string | null
+          seats?: number | null
+          price?: number | null
+          promo_price?: number | null
+          promo_until?: string | null
+          car_year?: number | null
+          features?: Json | null
+          is_available?: boolean
         }
         Update: {
-          car_id?: string
+          id?: number
           created_at?: string
+          car_id?: number
+          trim_name?: string
+          engine?: string | null
+          transmission?: string | null
+          drive_type?: string | null
+          seats?: number | null
+          price?: number | null
+          promo_price?: number | null
+          promo_until?: string | null
+          car_year?: number | null
+          features?: Json | null
+          is_available?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "car_trims_car_id_fkey"
+            columns: ["car_id"]
+            isOneToOne: false
+            referencedRelation: "cars"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      favorites: {
+        Row: {
+          id: string
+          created_at: string
+          user_id: string
+          car_id: number
+        }
+        Insert: {
           id?: string
+          created_at?: string
+          user_id: string
+          car_id: number
+        }
+        Update: {
+          id?: string
+          created_at?: string
           user_id?: string
+          car_id?: number
         }
         Relationships: [
           {
@@ -85,7 +196,7 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "cars"
             referencedColumns: ["id"]
-          },
+          }
         ]
       }
     }
@@ -105,10 +216,9 @@ export type Database = {
 }
 
 type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">
-
 type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">]
 
-export type Tables<
+export type Tables
   DefaultSchemaTableNameOrOptions extends
     | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
     | { schema: keyof DatabaseWithoutInternals },
@@ -129,15 +239,15 @@ export type Tables<
     : never
   : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema["Tables"] &
         DefaultSchema["Views"])
-    ? (DefaultSchema["Tables"] &
-        DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
-        Row: infer R
-      }
-      ? R
-      : never
+  ? (DefaultSchema["Tables"] &
+      DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
+      Row: infer R
+    }
+    ? R
     : never
+  : never
 
-export type TablesInsert<
+export type TablesInsert
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
@@ -155,14 +265,14 @@ export type TablesInsert<
     ? I
     : never
   : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
-    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
-        Insert: infer I
-      }
-      ? I
-      : never
+  ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+      Insert: infer I
+    }
+    ? I
     : never
+  : never
 
-export type TablesUpdate<
+export type TablesUpdate
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
@@ -180,14 +290,14 @@ export type TablesUpdate<
     ? U
     : never
   : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
-    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
-        Update: infer U
-      }
-      ? U
-      : never
+  ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+      Update: infer U
+    }
+    ? U
     : never
+  : never
 
-export type Enums<
+export type Enums
   DefaultSchemaEnumNameOrOptions extends
     | keyof DefaultSchema["Enums"]
     | { schema: keyof DatabaseWithoutInternals },
@@ -201,25 +311,8 @@ export type Enums<
 }
   ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
   : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
-    ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
-    : never
-
-export type CompositeTypes<
-  PublicCompositeTypeNameOrOptions extends
-    | keyof DefaultSchema["CompositeTypes"]
-    | { schema: keyof DatabaseWithoutInternals },
-  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
-    schema: keyof DatabaseWithoutInternals
-  }
-    ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
-    : never = never,
-> = PublicCompositeTypeNameOrOptions extends {
-  schema: keyof DatabaseWithoutInternals
-}
-  ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
-  : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
-    ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
-    : never
+  ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
+  : never
 
 export const Constants = {
   public: {
