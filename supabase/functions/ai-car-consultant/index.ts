@@ -88,6 +88,31 @@ Deno.serve(async (req) => {
     }).join("\n\n");
 
     const carIds = typedCars.map((c) => ({ id: c.id, label: `${c.brand} ${c.model}` }));
+
+    // Вычисляем ближайшую машину дороже текущего бюджета
+    let upsellHint = "";
+    if (currentFilters?.price_max) {
+      const budget = currentFilters.price_max;
+      // Собираем все минимальные цены по машинам (с учётом промо)
+      const allOptions: { price: number; label: string }[] = [];
+      for (const car of typedCars) {
+        for (const trim of (car.car_trims || [])) {
+          const promoActive = trim.promo_price && (!trim.promo_until || trim.promo_until >= now);
+          const effectivePrice = promoActive ? trim.promo_price! : trim.price;
+          if (effectivePrice > budget) {
+            allOptions.push({ price: effectivePrice, label: `${car.brand} ${car.model} ${trim.trim_name}` });
+          }
+        }
+      }
+      if (allOptions.length > 0) {
+        allOptions.sort((a, b) => a.price - b.price);
+        const nearest = allOptions[0];
+        const extra = nearest.price - budget;
+        upsellHint = `\nАПСЕЙЛ: если нет машин в бюджете, предложи расширить до ${nearest.price.toLocaleString("ru")} тг (ближайшая: ${nearest.label}, доплата +${extra.toLocaleString("ru")} тг). Используй ТОЧНО эту сумму: [UPSELL: {"new_price_max": ${nearest.price}, "car_names": ["${nearest.label}"], "extra_amount": ${extra}}]`;
+      } else {
+        upsellHint = `\nАПСЕЙЛ: нет машин дороже бюджета, не добавляй [UPSELL].`;
+      }
+    }
     const currentFiltersJson = currentFilters ? JSON.stringify(currentFilters) : "нет";
 
     const allBrands = [...new Set(typedCars.map((c) => c.brand))];
@@ -126,8 +151,7 @@ ${userName ? `6. Обращайся к клиенту: ${userName}.` : ""}
 2. [FILTERS: {"price_max": число|null, "price_min": число|null, "brands": ["бренд"]|null, "drive": "строка"|null, "transmission": "строка"|null, "clearance_min": число|null, "engine_type": "строка"|null}]
 
 Если ничего не подходит: [NO_EXACT_MATCH: true]
-
-АПСЕЙЛ: если price_max, посмотри +10%. [UPSELL: {"new_price_max": число, "car_names": ["Бренд Модель"], "extra_amount": число}]
+${upsellHint}
 
 Доступные ID:
 ${carIds.map((c) => `${c.id} = ${c.label}`).join("\n")}`;
