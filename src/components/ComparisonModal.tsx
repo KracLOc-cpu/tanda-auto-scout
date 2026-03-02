@@ -12,16 +12,22 @@ interface SpecRow {
 
 const specs: SpecRow[] = [
   { label: "Бренд", key: "brand" },
+  { label: "Кузов", key: "body_type" },
   { label: "Двигатель", key: "engine" },
-  { label: "Мощность", key: "power" },
   { label: "Трансмиссия", key: "transmission", highlight: true },
-  { label: "Привод", key: "drive", highlight: true },
-  { label: "Расход", key: "fuel_consumption" },
-  { label: "Цена", key: "price" },
+  { label: "Привод", key: "drive_type", highlight: true },
+  { label: "Клиренс", key: "clearance_mm" },
+  { label: "Расход (смеш.)", key: "fuel_consumption_mixed" },
+  { label: "Цена от", key: "price" },
 ];
 
+const formatPrice = (price: number) => {
+  if (price >= 1_000_000) return `${(price / 1_000_000).toFixed(1)} млн ₸`;
+  return `${price.toLocaleString("ru-RU")} ₸`;
+};
+
 const getBestValue = (key: string, values: string[]) => {
-  if (key === "drive") {
+  if (key === "drive_type") {
     if (values.includes("Полный")) return "Полный";
   }
   return null;
@@ -29,8 +35,8 @@ const getBestValue = (key: string, values: string[]) => {
 
 const generateVerdict = (cars: CarDB[]) => {
   if (cars.length < 2) return "";
-  const cheapest = cars.reduce((a, b) => (a.price < b.price ? a : b));
-  const fullDrive = cars.find((c) => c.specifications?.drive === "Полный");
+  const cheapest = cars.reduce((a, b) => (a.min_price < b.min_price ? a : b));
+  const fullDrive = cars.find(c => c.car_trims?.some(t => t.drive_type === "Полный"));
   let text = `По совокупности характеристик, **${cheapest.brand} ${cheapest.model}** предлагает лучшую цену.`;
   if (fullDrive) text += ` **${fullDrive.brand} ${fullDrive.model}** — единственный с полным приводом.`;
   return text;
@@ -47,8 +53,16 @@ const ComparisonModal = ({ open, onClose }: ComparisonModalProps) => {
 
   const getValue = (car: CarDB, key: string) => {
     if (key === "brand") return car.brand;
-    if (key === "price") return `${(car.price / 1_000_000).toFixed(1)} млн ₸`;
-    return car.specifications?.[key as keyof typeof car.specifications] ?? "—";
+    if (key === "body_type") return car.body_type || "—";
+    if (key === "clearance_mm") return car.clearance_mm ? `${car.clearance_mm} мм` : "—";
+    if (key === "fuel_consumption_mixed") return car.fuel_consumption_mixed ? `${car.fuel_consumption_mixed} л` : "—";
+    if (key === "price") return formatPrice(car.has_promo ? car.best_promo_price! : car.min_price);
+    // Trim-level specs: show from first trim
+    const trim = car.car_trims?.[0];
+    if (key === "engine") return trim?.engine || "—";
+    if (key === "transmission") return trim?.transmission || "—";
+    if (key === "drive_type") return trim?.drive_type || "—";
+    return "—";
   };
 
   const isRowIdentical = (spec: SpecRow) => {

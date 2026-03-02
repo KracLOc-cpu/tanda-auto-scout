@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Plus, Check, Car, Heart } from "lucide-react";
+import { Plus, Check, Car, Heart, BadgePercent, ShieldCheck } from "lucide-react";
 import { motion } from "framer-motion";
 import type { CarDB } from "@/hooks/useCars";
 import { useComparison } from "@/context/ComparisonContext";
@@ -26,7 +26,9 @@ const CarCard = ({ car, index, highlighted }: CarCardProps) => {
   const [showTestDrive, setShowTestDrive] = useState(false);
   const fav = isFavorite(String(car.id));
 
-  const specs = car.specifications;
+  // Get first trim for quick specs display
+  const firstTrim = car.car_trims?.[0];
+  const displayPrice = car.has_promo ? car.best_promo_price! : car.min_price;
 
   return (
     <>
@@ -58,6 +60,16 @@ const CarCard = ({ car, index, highlighted }: CarCardProps) => {
               {car.year}
             </motion.span>
           )}
+          {car.has_promo && (
+            <motion.span
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="absolute left-3 top-10 flex items-center gap-1 rounded-full bg-destructive px-3 py-1 text-xs font-semibold text-destructive-foreground"
+            >
+              <BadgePercent className="h-3 w-3" />
+              Акция
+            </motion.span>
+          )}
           {highlighted && (
             <motion.span
               initial={{ opacity: 0, scale: 0.8 }}
@@ -81,12 +93,35 @@ const CarCard = ({ car, index, highlighted }: CarCardProps) => {
         <div className="p-4">
           <p className="text-sm text-muted-foreground">{car.brand}</p>
           <h3 className="text-lg font-bold text-foreground md:text-base">{car.model}</h3>
-          <p className="mt-1 text-2xl font-bold text-primary md:text-xl">{formatPrice(car.price)}</p>
-          <div className="mt-2 flex flex-wrap gap-2 text-xs text-muted-foreground">
-            {specs?.engine && <span className="rounded bg-secondary px-2 py-0.5">{specs.engine}</span>}
-            {specs?.transmission && <span className="rounded bg-secondary px-2 py-0.5">{specs.transmission}</span>}
-            {specs?.drive && <span className="rounded bg-secondary px-2 py-0.5">{specs.drive}</span>}
+
+          <div className="mt-1 flex items-baseline gap-2">
+            <p className="text-2xl font-bold text-primary md:text-xl">
+              {car.has_promo ? formatPrice(car.best_promo_price!) : formatPrice(car.min_price)}
+            </p>
+            {car.has_promo && (
+              <p className="text-sm text-muted-foreground line-through">{formatPrice(car.min_price)}</p>
+            )}
           </div>
+
+          {car.car_trims?.length > 1 && (
+            <p className="mt-0.5 text-xs text-muted-foreground">
+              {car.car_trims.length} комплектаций
+            </p>
+          )}
+
+          <div className="mt-2 flex flex-wrap gap-2 text-xs text-muted-foreground">
+            {firstTrim?.engine && <span className="rounded bg-secondary px-2 py-0.5">{firstTrim.engine}</span>}
+            {firstTrim?.transmission && <span className="rounded bg-secondary px-2 py-0.5">{firstTrim.transmission}</span>}
+            {firstTrim?.drive_type && <span className="rounded bg-secondary px-2 py-0.5">{firstTrim.drive_type}</span>}
+            {car.body_type && <span className="rounded bg-secondary px-2 py-0.5">{car.body_type}</span>}
+          </div>
+
+          {car.last_verified_at && (
+            <div className="mt-2 flex items-center gap-1 text-xs text-success">
+              <ShieldCheck className="h-3 w-3" />
+              Проверено {car.last_verified_by || "TANDA"}
+            </div>
+          )}
 
           <button
             onClick={() => setShowTestDrive(true)}

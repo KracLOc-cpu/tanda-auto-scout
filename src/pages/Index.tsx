@@ -58,8 +58,8 @@ const Index = () => {
 
   const activeFilterBadges = useMemo(() => {
     const badges: { label: string; key: keyof CarFilters }[] = [];
-    if (filters.price_max) badges.push({ label: `до ${(filters.price_max / 1_000_000).toFixed(1)} млн`, key: "price_max" });
-    if (filters.price_min) badges.push({ label: `от ${(filters.price_min / 1_000_000).toFixed(1)} млн`, key: "price_min" });
+    if (filters.price_max) badges.push({ label: `до ${(filters.price_max / 1_000_000).toFixed(1)} млн ₸`, key: "price_max" });
+    if (filters.price_min) badges.push({ label: `от ${(filters.price_min / 1_000_000).toFixed(1)} млн ₸`, key: "price_min" });
     if (filters.brands?.length) {
       filters.brands.forEach((b) => badges.push({ label: b, key: "brands" }));
     }
