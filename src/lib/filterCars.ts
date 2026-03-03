@@ -19,18 +19,32 @@ export function applyFilters(cars: CarDB[], filters: CarFilters): CarDB[] {
 
     // Check drive_type across trims
     if (filters.drive) {
-      const hasDrive = car.car_trims?.some(t =>
-        typeof t.drive_type === 'string' && t.drive_type.toLowerCase().includes(filters.drive!.toLowerCase())
+      const hasDrive = car.car_trims?.some(
+        (t) => typeof t.drive_type === "string" &&
+          t.drive_type.toLowerCase().includes(filters.drive!.toLowerCase())
       );
       if (!hasDrive) return false;
     }
 
-    // Check transmission across trims
+    // Check transmission across trims — exclude matching types
     if (filters.transmission) {
-      const hasTrans = car.car_trims?.some(t =>
-        typeof t.transmission === 'string' && t.transmission.toLowerCase().includes(filters.transmission!.toLowerCase())
-      );
-      if (!hasTrans) return false;
+      const val = filters.transmission.toLowerCase();
+      // Support "not:" prefix for exclusion e.g. "not:cvt,dct"
+      if (val.startsWith("not:")) {
+        const excluded = val.slice(4).split(",").map((s) => s.trim());
+        const allExcluded = car.car_trims?.every((t) => {
+          if (typeof t.transmission !== "string") return false;
+          const trans = t.transmission.toLowerCase();
+          return excluded.some((ex) => trans.includes(ex));
+        });
+        if (allExcluded) return false;
+      } else {
+        const hasTrans = car.car_trims?.some(
+          (t) => typeof t.transmission === "string" &&
+            t.transmission.toLowerCase().includes(val)
+        );
+        if (!hasTrans) return false;
+      }
     }
 
     // Clearance from cars table
@@ -40,8 +54,9 @@ export function applyFilters(cars: CarDB[], filters: CarFilters): CarDB[] {
 
     // Engine type across trims
     if (filters.engine_type) {
-      const hasEngine = car.car_trims?.some(t =>
-        t.engine?.toLowerCase().includes(filters.engine_type!.toLowerCase())
+      const hasEngine = car.car_trims?.some(
+        (t) => typeof t.engine === "string" &&
+          t.engine.toLowerCase().includes(filters.engine_type!.toLowerCase())
       );
       if (!hasEngine) return false;
     }
