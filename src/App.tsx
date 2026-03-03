@@ -1,3 +1,4 @@
+import ComparisonModal from "./components/ComparisonModal";
 import { useState, useEffect, useCallback } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -8,7 +9,7 @@ import { ThemeProvider } from "next-themes";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import DarkModeToggle from "./components/DarkModeToggle";
-import ComparisonModal from "./components/ComparisonModal";
+
 import { ComparisonProvider, useComparison } from "./context/ComparisonContext";
 import { AnimatePresence, motion } from "framer-motion";
 import { useAuth } from "@/hooks/useAuth";
@@ -55,8 +56,8 @@ const Header = () => {
           <span className="hidden text-sm text-muted-foreground sm:inline">Алматы</span>
           <DarkModeToggle />
 
-          {/* Кнопка сравнения */}
-          <div className="relative">
+          {/* Кнопка сравнения — только на десктопе, на мобиле она в нижней навигации */}
+          <div className="relative hidden sm:block">
             <button
               onClick={handleCompareClick}
               className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
