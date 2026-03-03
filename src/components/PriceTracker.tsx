@@ -10,7 +10,6 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
-  Legend,
   ResponsiveContainer,
 } from "recharts";
 import { mockPriceData, mockPricePredicted } from "@/lib/mockData";
@@ -19,7 +18,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 const modelOptions = [
   { value: "all", label: "Все модели" },
   { value: "tucson", label: "Hyundai Tucson" },
-  { value: "tiggo", label: "Chery Tiggo 7 Pro" },
+  { value: "tiggo4", label: "Chery Tiggo 4" },
   { value: "sportage", label: "Kia Sportage" },
 ];
 
@@ -29,7 +28,7 @@ const PriceTracker = () => {
   const isMobile = useIsMobile();
 
   const showTucson = selectedModel === "all" || selectedModel === "tucson";
-  const showTiggo = selectedModel === "all" || selectedModel === "tiggo";
+  const showTiggo = selectedModel === "all" || selectedModel === "tiggo4";
   const showSportage = selectedModel === "all" || selectedModel === "sportage";
 
   return (
@@ -37,7 +36,7 @@ const PriceTracker = () => {
       <motion.button
         onClick={() => setOpen(true)}
         whileHover={{ x: 4 }}
-        className="fixed left-0 top-1/2 z-40 -translate-y-1/2 rounded-r-lg border border-l-0 border-border bg-card p-2.5 shadow-md transition-colors hover:bg-secondary"
+        className="fixed left-0 top-1/2 z-40 -translate-y-1/2 rounded-r-lg border border-l-0 border-border bg-card p-2.5 shadow-md transition-colors hover:bg-secondary hidden md:flex"
         aria-label="Open price tracker"
       >
         <LineChartIcon className="h-5 w-5 text-primary" />
@@ -63,7 +62,10 @@ const PriceTracker = () => {
               }`}
             >
               <div className="flex items-center justify-between border-b border-border px-5 py-4">
-                <h2 className="text-base font-bold text-foreground">Динамика цен</h2>
+                <div>
+                  <h2 className="text-base font-bold text-foreground">Динамика цен</h2>
+                  <p className="text-xs text-muted-foreground mt-0.5">Данные дилеров Алматы · млн ₸</p>
+                </div>
                 <button
                   onClick={() => setOpen(false)}
                   className="flex items-center justify-center rounded-lg border border-border bg-secondary p-2 transition-colors hover:bg-muted"
@@ -73,10 +75,10 @@ const PriceTracker = () => {
                 </button>
               </div>
 
-              {/* Model selector dropdown */}
+              {/* Model selector */}
               <div className="px-5 pt-4">
                 <label className="mb-1.5 block text-xs font-medium text-muted-foreground">
-                  Сравнить с другой моделью
+                  Модель
                 </label>
                 <div className="relative">
                   <select
@@ -94,9 +96,10 @@ const PriceTracker = () => {
                 </div>
               </div>
 
-              {/* Main chart */}
-              <div className="flex-1 overflow-y-auto px-2 pt-6">
-                <p className="mb-2 px-3 text-xs font-medium text-muted-foreground">Реальные цены (2024-2026)</p>
+              <div className="flex-1 overflow-y-auto px-2 pt-5">
+                <p className="mb-2 px-3 text-xs font-medium text-muted-foreground">
+                  Исторические цены (2024–2026)
+                </p>
                 <ResponsiveContainer width="100%" height={220}>
                   <AreaChart data={mockPriceData}>
                     <defs>
@@ -106,106 +109,50 @@ const PriceTracker = () => {
                       </linearGradient>
                     </defs>
                     <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                    <XAxis
-                      dataKey="month"
-                      tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
-                      tickLine={false}
-                    />
-                    <YAxis
-                      tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
-                      tickFormatter={(v) => `${v}м`}
-                      tickLine={false}
-                      width={36}
-                    />
+                    <XAxis dataKey="month" tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }} tickLine={false} />
+                    <YAxis tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }} tickFormatter={(v) => `${v}м`} tickLine={false} width={36} />
                     <Tooltip
-                      contentStyle={{
-                        background: "hsl(var(--card))",
-                        border: "1px solid hsl(var(--border))",
-                        borderRadius: 8,
-                        fontSize: 12,
-                        color: "hsl(var(--foreground))",
+                      contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 12, color: "hsl(var(--foreground))" }}
+                      formatter={(value: number, name: string) => {
+                        const labels: Record<string, string> = { tucson: "Tucson", tiggo4: "Tiggo 4", sportage: "Sportage" };
+                        return [`${value} млн ₸`, labels[name] || name];
                       }}
-                      formatter={(value: number) => [`${value} млн ₸`]}
                     />
-                    <Legend wrapperStyle={{ fontSize: 11 }} />
-                    {showTucson && (
-                      <Area
-                        type="monotone"
-                        dataKey="tucson"
-                        name="Tucson"
-                        stroke="hsl(var(--primary))"
-                        fill="url(#gradTucson)"
-                        strokeWidth={2}
-                      />
-                    )}
-                    {showTiggo && (
-                      <Area
-                        type="monotone"
-                        dataKey="tiggo"
-                        name="Tiggo 7 Pro"
-                        stroke="hsl(var(--success))"
-                        fill="hsl(var(--success))"
-                        fillOpacity={0.1}
-                        strokeWidth={2}
-                      />
-                    )}
-                    {showSportage && (
-                      <Area
-                        type="monotone"
-                        dataKey="sportage"
-                        name="Sportage"
-                        stroke="hsl(35 100% 50%)"
-                        fill="hsl(35 100% 50%)"
-                        fillOpacity={0.1}
-                        strokeWidth={2}
-                      />
-                    )}
+                    {showTucson && <Area type="monotone" dataKey="tucson" name="tucson" stroke="hsl(var(--primary))" fill="url(#gradTucson)" strokeWidth={2} />}
+                    {showTiggo && <Area type="monotone" dataKey="tiggo4" name="tiggo4" stroke="hsl(var(--success))" fill="hsl(var(--success))" fillOpacity={0.1} strokeWidth={2} />}
+                    {showSportage && <Area type="monotone" dataKey="sportage" name="sportage" stroke="hsl(35 100% 50%)" fill="hsl(35 100% 50%)" fillOpacity={0.1} strokeWidth={2} />}
                   </AreaChart>
                 </ResponsiveContainer>
 
-                {/* Predicted chart */}
-                <p className="mb-2 mt-6 px-3 text-xs font-medium text-muted-foreground">Прогноз (+2% тренд)</p>
+                <p className="mb-2 mt-6 px-3 text-xs font-medium text-muted-foreground">Прогноз (тренд +2%)</p>
                 <ResponsiveContainer width="100%" height={160}>
                   <LineChart data={mockPricePredicted}>
                     <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                    <XAxis
-                      dataKey="month"
-                      tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
-                      tickLine={false}
-                    />
-                    <YAxis
-                      tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
-                      tickFormatter={(v) => `${v}м`}
-                      tickLine={false}
-                      width={36}
-                    />
+                    <XAxis dataKey="month" tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }} tickLine={false} />
+                    <YAxis tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }} tickFormatter={(v) => `${v}м`} tickLine={false} width={36} />
                     <Tooltip
-                      contentStyle={{
-                        background: "hsl(var(--card))",
-                        border: "1px solid hsl(var(--border))",
-                        borderRadius: 8,
-                        fontSize: 12,
-                        color: "hsl(var(--foreground))",
+                      contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 12, color: "hsl(var(--foreground))" }}
+                      formatter={(value: number, name: string) => {
+                        const labels: Record<string, string> = { tucson: "Tucson", tiggo4: "Tiggo 4", sportage: "Sportage" };
+                        return [`${value} млн ₸`, labels[name] || name];
                       }}
-                      formatter={(value: number) => [`${value} млн ₸`]}
                     />
-                    {showTucson && <Line type="monotone" dataKey="tucson" name="Tucson" stroke="hsl(var(--primary))" strokeWidth={2} strokeDasharray="6 3" dot={false} />}
-                    {showTiggo && <Line type="monotone" dataKey="tiggo" name="Tiggo 7 Pro" stroke="hsl(var(--success))" strokeWidth={2} strokeDasharray="6 3" dot={false} />}
-                    {showSportage && <Line type="monotone" dataKey="sportage" name="Sportage" stroke="hsl(35 100% 50%)" strokeWidth={2} strokeDasharray="6 3" dot={false} />}
+                    {showTucson && <Line type="monotone" dataKey="tucson" stroke="hsl(var(--primary))" strokeWidth={2} strokeDasharray="6 3" dot={false} />}
+                    {showTiggo && <Line type="monotone" dataKey="tiggo4" stroke="hsl(var(--success))" strokeWidth={2} strokeDasharray="6 3" dot={false} />}
+                    {showSportage && <Line type="monotone" dataKey="sportage" stroke="hsl(35 100% 50%)" strokeWidth={2} strokeDasharray="6 3" dot={false} />}
                   </LineChart>
                 </ResponsiveContainer>
               </div>
 
-              {/* AI Insight */}
               <div className="mx-5 mb-4 rounded-lg border border-primary/20 bg-primary/5 p-3">
                 <p className="text-xs font-semibold text-primary">🤖 AI Анализ</p>
                 <p className="mt-1 text-xs text-muted-foreground">
-                  Цены на данные модели стабилизировались. Хорошее время для покупки. Прогноз показывает умеренный рост ~2% в квартал.
+                  Цены на популярные модели умеренно растут. Hyundai Tucson и Kia Sportage сохраняют высокую ликвидность при перепродаже. Chery Tiggo 4 — лучший бюджетный вариант.
                 </p>
               </div>
 
               <div className="px-5 pb-4 text-xs text-muted-foreground">
-                * Данные в миллионах тенге. Источник: дилеры Алматы.
+                * Ориентировочные данные. Актуальные цены уточняйте у дилеров.
               </div>
             </motion.div>
           </>
