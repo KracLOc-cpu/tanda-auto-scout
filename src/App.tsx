@@ -59,13 +59,21 @@ const Header = () => {
           <div className="relative">
             <button
               onClick={handleCompareClick}
-              className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
+              className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
                 selectedCars.length > 0
                   ? "bg-primary text-primary-foreground hover:bg-primary/90"
                   : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
               }`}
             >
-              Сравнить {selectedCars.length > 0 ? `(${selectedCars.length})` : ""}
+              <span className="hidden sm:inline">Сравнить</span>
+              <span className="sm:hidden">⚖️</span>
+              {selectedCars.length > 0 && (
+                <span className={`flex h-4 w-4 items-center justify-center rounded-full text-[10px] font-bold ${
+                  selectedCars.length > 0 ? "bg-white/30" : "bg-foreground/20"
+                }`}>
+                  {selectedCars.length}
+                </span>
+              )}
             </button>
             <AnimatePresence>
               {showTooltip && (
