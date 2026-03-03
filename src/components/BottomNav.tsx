@@ -58,16 +58,14 @@ const BottomNav = ({ onOpenChat, appState }: BottomNavProps) => {
         {/* AI чат — центральная большая кнопка */}
         <button
           onClick={onOpenChat}
-          className="relative -mt-5 flex h-14 w-14 flex-col items-center justify-center rounded-full bg-primary shadow-lg shadow-primary/40"
+          className="relative -mt-4 flex h-14 w-14 flex-col items-center justify-center rounded-full bg-primary shadow-lg shadow-primary/40"
         >
           <Bot className="h-6 w-6 text-primary-foreground" />
-          <span className="absolute inset-0 animate-ping rounded-full bg-primary/30" />
         </button>
 
         {/* Избранное — заглушка */}
         <button
-          className="flex flex-col items-center gap-0.5 px-4 py-2 text-muted-foreground"
-          disabled
+          className="flex flex-col items-center gap-0.5 px-4 py-2 text-muted-foreground opacity-40"
         >
           <Heart className="h-5 w-5" />
           <span className="text-[10px]">Избранное</span>

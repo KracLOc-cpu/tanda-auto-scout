@@ -103,7 +103,7 @@ const AIChatPanel = ({ messages, onSend, isTyping, upsell, onExpandBudget }: AIC
     <div className="flex flex-col">
       <div
         ref={scrollRef}
-        className="max-h-[60vh] space-y-3 overflow-y-auto scroll-smooth pr-1"
+        className="max-h-[60vh] space-y-3 overflow-y-auto scroll-smooth overscroll-contain pr-1"
       >
         {messages.map((msg, i) => (
           <motion.div
@@ -111,14 +111,13 @@ const AIChatPanel = ({ messages, onSend, isTyping, upsell, onExpandBudget }: AIC
             initial={{ opacity: 0, x: msg.role === "user" ? 20 : -20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.25 }}
+            className="mb-2"
           >
             {msg.role === "user" ? (
-              // Сообщение пользователя — простой пузырь
               <div className="ml-auto max-w-[80%] rounded-2xl rounded-br-sm bg-primary px-4 py-2.5 text-sm text-primary-foreground">
                 {msg.text}
               </div>
             ) : (
-              // Сообщение бота — с Markdown
               <div className="mr-auto max-w-[95%]">
                 <div className="mb-1 flex items-center gap-1.5">
                   <div className="flex h-5 w-5 items-center justify-center rounded-full bg-primary/10">
@@ -232,7 +231,7 @@ const AIChatPanel = ({ messages, onSend, isTyping, upsell, onExpandBudget }: AIC
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}
           onSubmit={handleSubmit}
-          className="mt-3 flex items-center gap-2 rounded-xl border border-border bg-background p-2"
+          className="sticky bottom-0 mt-3 flex items-center gap-2 rounded-xl border border-border bg-background p-2 pt-2"
         >
           <input
             type="text"

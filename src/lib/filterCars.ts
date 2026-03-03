@@ -33,7 +33,7 @@ export function applyFilters(cars: CarDB[], filters: CarFilters): CarDB[] {
       if (val.startsWith("not:")) {
         const excluded = val.slice(4).split(",").map((s) => s.trim());
         const allExcluded = car.car_trims?.every((t) => {
-          if (typeof t.transmission !== "string") return false;
+          if (typeof t.transmission !== "string" || !t.transmission) return false;
           const trans = t.transmission.toLowerCase();
           return excluded.some((ex) => trans.includes(ex));
         });

@@ -96,7 +96,7 @@ const Index = () => {
 
   const renderFilterBadges = () =>
     hasFilters && (
-      <div className="mb-3 flex flex-wrap items-center gap-1.5">
+      <div className="mb-3 flex items-center gap-1.5 overflow-x-auto flex-nowrap pb-1 md:flex-wrap md:overflow-visible">
         {activeFilterBadges.map((badge, i) => (
           <button
             key={`${badge.key}-${badge.value ?? ""}-${i}`}
