@@ -1,6 +1,7 @@
 import { useState } from "react";
-import { X, Car, Check } from "lucide-react";
+import { X, Car, Check, Loader2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { externalSupabase } from "@/integrations/supabase/externalClient";
 
 interface TestDriveModalProps {
   open: boolean;
@@ -28,33 +29,44 @@ const TestDriveModal = ({ open, onClose, carName }: TestDriveModalProps) => {
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [submitted, setSubmitted] = useState(false);
-  const [errors, setErrors] = useState<{ name?: string; phone?: string }>({});
+  const [loading, setLoading] = useState(false);
+  const [errors, setErrors] = useState<{ name?: string; phone?: string; server?: string }>({});
 
   const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const raw = e.target.value.replace(/\D/g, "");
-    if (raw.length === 0) {
-      setPhone("");
-      return;
-    }
+    if (raw.length === 0) { setPhone(""); return; }
     let digits = raw;
     if (!digits.startsWith("7")) digits = "7" + digits;
     setPhone(formatPhone(digits));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const newErrors: typeof errors = {};
     if (!name.trim() || name.trim().length < 2) newErrors.name = "Введите имя (мин. 2 символа)";
     if (!isValidKZPhone(phone)) newErrors.phone = "Формат: +7 (7xx) xxx-xx-xx";
     setErrors(newErrors);
     if (Object.keys(newErrors).length > 0) return;
-    setSubmitted(true);
+
+    setLoading(true);
+    try {
+      const { error } = await externalSupabase
+        .from("test_drive_requests")
+        .insert({ car_name: carName, name: name.trim(), phone });
+      if (error) throw error;
+      setSubmitted(true);
+    } catch (err) {
+      setErrors({ server: "Ошибка отправки. Попробуйте ещё раз." });
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleClose = () => {
     setName("");
     setPhone("");
     setSubmitted(false);
+    setLoading(false);
     setErrors({});
     onClose();
   };
@@ -86,25 +98,18 @@ const TestDriveModal = ({ open, onClose, carName }: TestDriveModalProps) => {
                 animate={{ scale: 1, opacity: 1 }}
                 className="flex flex-col items-center gap-4 py-8 text-center"
               >
-                {/* Animated checkmark */}
                 <motion.div
                   initial={{ scale: 0 }}
                   animate={{ scale: 1 }}
                   transition={{ type: "spring", stiffness: 200, damping: 12, delay: 0.1 }}
                   className="flex h-16 w-16 items-center justify-center rounded-full bg-success/15"
                 >
-                  <motion.div
-                    initial={{ pathLength: 0, opacity: 0 }}
-                    animate={{ pathLength: 1, opacity: 1 }}
-                    transition={{ delay: 0.3, duration: 0.4 }}
-                  >
-                    <Check className="h-8 w-8 text-success" strokeWidth={3} />
-                  </motion.div>
+                  <Check className="h-8 w-8 text-success" strokeWidth={3} />
                 </motion.div>
                 <motion.h3
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.4 }}
+                  transition={{ delay: 0.3 }}
                   className="text-lg font-bold text-foreground"
                 >
                   Заявка отправлена!
@@ -112,7 +117,7 @@ const TestDriveModal = ({ open, onClose, carName }: TestDriveModalProps) => {
                 <motion.p
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.5 }}
+                  transition={{ delay: 0.4 }}
                   className="text-sm text-muted-foreground"
                 >
                   Менеджер свяжется с вами в течение 30 минут для подтверждения тест-драйва {carName}.
@@ -120,7 +125,7 @@ const TestDriveModal = ({ open, onClose, carName }: TestDriveModalProps) => {
                 <motion.button
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
-                  transition={{ delay: 0.6 }}
+                  transition={{ delay: 0.5 }}
                   onClick={handleClose}
                   className="mt-2 rounded-lg bg-primary px-6 py-2.5 text-sm font-medium text-primary-foreground hover:bg-primary/90"
                 >
@@ -165,11 +170,18 @@ const TestDriveModal = ({ open, onClose, carName }: TestDriveModalProps) => {
                     {errors.phone && <p className="mt-1 text-xs text-destructive">{errors.phone}</p>}
                   </div>
 
+                  {errors.server && (
+                    <p className="rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">
+                      {errors.server}
+                    </p>
+                  )}
+
                   <button
                     type="submit"
-                    className="w-full rounded-lg bg-primary py-2.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+                    disabled={loading}
+                    className="flex w-full items-center justify-center gap-2 rounded-lg bg-primary py-2.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-60"
                   >
-                    Отправить заявку
+                    {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Отправить заявку"}
                   </button>
                 </form>
               </>
