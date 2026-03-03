@@ -106,7 +106,7 @@ const CarCard = ({ car, index, highlighted, onOpenDetail }: CarCardProps) => {
             <h3 className="text-lg font-bold text-foreground md:text-base">{car.model}</h3>
 
             <div className="mt-1 flex items-baseline gap-2">
-              <p className="text-2xl font-bold text-primary md:text-xl">
+              <p className="text-lg font-bold text-primary md:text-2xl">
                 {car.has_promo
                   ? formatPrice(car.best_promo_price!)
                   : formatPrice(car.min_price)}
@@ -154,7 +154,7 @@ const CarCard = ({ car, index, highlighted, onOpenDetail }: CarCardProps) => {
         <div className="space-y-2 px-4 pb-4 pt-2">
           <button
             onClick={() => setShowTestDrive(true)}
-            className="flex w-full items-center justify-center gap-2 rounded-lg bg-primary py-2.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+            className="hidden w-full items-center justify-center gap-2 rounded-lg bg-primary py-2.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 md:flex"
           >
             <Car className="h-4 w-4" />
             Записаться на тест-драйв
