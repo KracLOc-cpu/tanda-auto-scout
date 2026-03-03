@@ -53,10 +53,20 @@ export interface CarDB {
   has_promo: boolean;
 }
 
+function sanitizeTrim(t: any): CarTrim {
+  return {
+    ...t,
+    transmission: typeof t.transmission === "string" ? t.transmission : "",
+    drive_type: typeof t.drive_type === "string" ? t.drive_type : "",
+    engine: typeof t.engine === "string" ? t.engine : "",
+    trim_name: typeof t.trim_name === "string" ? t.trim_name : "",
+  };
+}
+
 function computeCarPrices(
   car: Omit<CarDB, "min_price" | "best_promo_price" | "has_promo">
 ): CarDB {
-  const trims = car.car_trims || [];
+  const trims = (car.car_trims || []).map(sanitizeTrim);
   // Sort trims by price ascending
   trims.sort((a, b) => a.price - b.price);
 
