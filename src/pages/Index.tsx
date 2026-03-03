@@ -14,6 +14,7 @@ import { Bot, Loader2, Search, X } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useCars } from "@/hooks/useCars";
 import CarDetailModal from "@/components/CarDetailModal";
+import BottomNav from "@/components/BottomNav";
 import type { CarDB } from "@/hooks/useCars";
 import {
   Drawer,
@@ -59,7 +60,6 @@ const Index = () => {
     });
   }, [filteredCars, highlightedCarIds]);
 
-  // Бейджи активных фильтров
   const activeFilterBadges = useMemo(() => {
     const badges: { label: string; key: keyof CarFilters; value?: string }[] = [];
     if (filters.price_max) badges.push({ label: `до ${(filters.price_max / 1_000_000).toFixed(1)} млн ₸`, key: "price_max" });
@@ -74,21 +74,16 @@ const Index = () => {
     return badges;
   }, [filters]);
 
+  const allFilterKeys: (keyof CarFilters)[] = ["price_max", "price_min", "brands", "drive", "clearance_min", "engine_type", "transmission"];
+
   const handleRemoveBadge = useCallback(
     (key: keyof CarFilters, brandValue?: string) => {
       if (key === "brands" && brandValue && filters.brands) {
         const remaining = filters.brands.filter((b) => b !== brandValue);
-        // Используем removeFilter для очистки, потом восстанавливаем оставшиеся через прямой setFilters
-        // Так как removeFilter удаляет весь ключ, делаем через sendMessage с новыми фильтрами
-        if (remaining.length === 0) {
-          removeFilter("brands");
-        } else {
-          // Удаляем все бренды и добавляем оставшиеся через новый запрос
-          removeFilter("brands");
-          // Принудительно обновляем фильтры через хак: имитируем что brands = remaining
-          // Это делается через sendMessage, но проще через прямой стейт
-          // Текущая архитектура не позволяет обновить часть массива без sendMessage,
-          // поэтому удаляем все бренды — это корректное поведение
+        removeFilter("brands");
+        if (remaining.length > 0) {
+          // Оставшиеся бренды — пересобрать нельзя без sendMessage,
+          // поэтому просто удаляем весь фильтр брендов
         }
         return;
       }
@@ -114,10 +109,7 @@ const Index = () => {
         ))}
         {activeFilterBadges.length > 1 && (
           <button
-            onClick={() => {
-              (["price_max", "price_min", "brands", "drive", "clearance_min", "engine_type", "transmission"] as (keyof CarFilters)[])
-                .forEach((k) => removeFilter(k));
-            }}
+            onClick={() => allFilterKeys.forEach((k) => removeFilter(k))}
             className="rounded-full border border-border px-3 py-1 text-xs text-muted-foreground transition-colors hover:border-destructive hover:text-destructive"
           >
             Сбросить все
@@ -131,8 +123,8 @@ const Index = () => {
       <p className="mb-2 text-lg font-semibold text-foreground">Ничего не найдено</p>
       <p className="mb-6 max-w-sm text-sm text-muted-foreground">
         {noExactMatch
-          ? "По вашим критериям точных совпадений нет, но мы можем расширить поиск."
-          : "Попробуйте изменить фильтры или расширить критерии поиска."}
+          ? "По вашим критериям точных совпадений нет."
+          : "Попробуйте изменить фильтры или расширить критерии."}
       </p>
       <div className="flex flex-col gap-2 sm:flex-row">
         <button
@@ -144,11 +136,8 @@ const Index = () => {
         </button>
         {hasFilters && (
           <button
-            onClick={() => {
-              (["price_max", "price_min", "brands", "drive", "clearance_min", "engine_type", "transmission"] as (keyof CarFilters)[])
-                .forEach((k) => removeFilter(k));
-            }}
-            className="flex items-center gap-2 rounded-lg border border-border px-5 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-secondary"
+            onClick={() => allFilterKeys.forEach((k) => removeFilter(k))}
+            className="flex items-center gap-2 rounded-lg border border-border px-5 py-2.5 text-sm font-medium transition-colors hover:bg-secondary"
           >
             <X className="h-4 w-4" />
             Сбросить фильтры
@@ -251,7 +240,7 @@ const Index = () => {
             transition={{ duration: 0.4 }}
             className="mx-auto max-w-7xl px-4 py-6"
           >
-            {/* Desktop */}
+            {/* Desktop: чат слева, каталог справа */}
             <div className="hidden gap-6 md:grid md:grid-cols-[2fr_3fr] items-start">
               <div className="sticky top-[65px]">
                 <AIChatPanel
@@ -265,33 +254,19 @@ const Index = () => {
               <div>{renderCarGrid("grid-cols-2")}</div>
             </div>
 
-            {/* Mobile */}
+            {/* Mobile: поиск + сетка 2 колонки */}
             <div className="md:hidden">
               <motion.div
                 initial={{ y: -20, opacity: 0 }}
                 animate={{ y: 0, opacity: 1 }}
-                className="mb-6 flex justify-center"
+                className="mb-4 flex justify-center"
               >
                 <SearchBar onSearch={handleSearch} compact />
               </motion.div>
-              {renderCarGrid("grid-cols-1")}
+              {renderCarGrid("grid-cols-2")}
             </div>
 
-            {/* Mobile FAB */}
-            {isMobile && (
-              <motion.button
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                transition={{ delay: 0.1, type: "spring" }}
-                onClick={() => setShowMobileChat(true)}
-                className="fixed bottom-6 right-6 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-primary shadow-lg"
-                aria-label="Open AI Chat"
-              >
-                <Bot className="h-6 w-6 text-primary-foreground" />
-                <span className="absolute inset-0 animate-ping rounded-full bg-primary/40" />
-              </motion.button>
-            )}
-
+            {/* Мобильный Drawer с чатом */}
             <Drawer open={showMobileChat} onOpenChange={setShowMobileChat}>
               <DrawerContent className="max-h-[85vh]">
                 <DrawerHeader className="pb-0">
@@ -317,6 +292,12 @@ const Index = () => {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Нижняя навигация на мобиле */}
+      <BottomNav
+        onOpenChat={() => setShowMobileChat(true)}
+        appState={appState}
+      />
 
       {/* Car Detail Modal */}
       <CarDetailModal car={selectedCar} onClose={() => setSelectedCar(null)} />
