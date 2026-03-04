@@ -10,11 +10,11 @@ import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import AdminPhotos from "./pages/AdminPhotos";
 import DarkModeToggle from "./components/DarkModeToggle";
+import AuthModal from "./components/AuthModal";
 
 import { ComparisonProvider, useComparison } from "./context/ComparisonContext";
 import { AnimatePresence, motion } from "framer-motion";
 import { useAuth } from "@/hooks/useAuth";
-import { lovable } from "@/integrations/lovable/index";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { LogOut } from "lucide-react";
 
@@ -27,8 +27,8 @@ const Header = () => {
   const [showTooltip, setShowTooltip] = useState(false);
   const [hasShownTooltip, setHasShownTooltip] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
+  const [showAuthModal, setShowAuthModal] = useState(false);
 
-  // Показываем тултип когда добавлена 2-я машина (уже есть смысл сравнивать)
   useEffect(() => {
     if (selectedCars.length === 2 && !hasShownTooltip) {
       setShowTooltip(true);
@@ -43,12 +43,6 @@ const Header = () => {
     setShowComparison(true);
   }, []);
 
-  const handleSignIn = async () => {
-    await lovable.auth.signInWithOAuth("google", {
-      redirect_uri: window.location.origin,
-    });
-  };
-
   return (
     <>
       <header className="sticky top-0 z-50 flex items-center justify-between border-b border-border bg-background/80 px-4 py-3 backdrop-blur-md transition-colors duration-300 sm:px-6">
@@ -57,7 +51,7 @@ const Header = () => {
           <span className="hidden text-sm text-muted-foreground sm:inline">Алматы</span>
           <DarkModeToggle />
 
-          {/* Кнопка сравнения — только на десктопе, на мобиле она в нижней навигации */}
+          {/* Кнопка сравнения — только на десктопе */}
           <div className="relative hidden sm:block">
             <button
               onClick={handleCompareClick}
@@ -70,9 +64,7 @@ const Header = () => {
               <span className="hidden sm:inline">Сравнить</span>
               <span className="sm:hidden">⚖️</span>
               {selectedCars.length > 0 && (
-                <span className={`flex h-4 w-4 items-center justify-center rounded-full text-[10px] font-bold ${
-                  selectedCars.length > 0 ? "bg-white/30" : "bg-foreground/20"
-                }`}>
+                <span className="flex h-4 w-4 items-center justify-center rounded-full bg-white/30 text-[10px] font-bold">
                   {selectedCars.length}
                 </span>
               )}
@@ -119,7 +111,7 @@ const Header = () => {
                       className="absolute right-0 top-full mt-2 z-[100] w-48 rounded-lg border border-border bg-popover p-2 shadow-lg"
                     >
                       <p className="px-2 py-1 text-sm font-medium text-foreground">{profile.name}</p>
-                      <p className="px-2 pb-2 text-xs text-muted-foreground">{profile.email}</p>
+                      <p className="px-2 pb-2 text-xs text-muted-foreground">{profile.email || profile.phone}</p>
                       <button
                         onClick={() => { setShowUserMenu(false); signOut(); }}
                         className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm text-destructive transition-colors hover:bg-destructive/10"
@@ -133,22 +125,18 @@ const Header = () => {
               </div>
             ) : (
               <button
-                onClick={handleSignIn}
+                onClick={() => setShowAuthModal(true)}
                 className="flex items-center gap-2 rounded-full bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground transition-colors hover:bg-primary/90"
               >
-                <svg className="h-4 w-4" viewBox="0 0 24 24">
-                  <path fill="currentColor" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z"/>
-                  <path fill="currentColor" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-                  <path fill="currentColor" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
-                  <path fill="currentColor" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
-                </svg>
                 Войти
               </button>
             )
           )}
         </div>
       </header>
+
       <ComparisonModal open={showComparison} onClose={() => setShowComparison(false)} />
+      <AuthModal open={showAuthModal} onClose={() => setShowAuthModal(false)} />
     </>
   );
 };
