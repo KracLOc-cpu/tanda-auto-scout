@@ -1,6 +1,12 @@
 import type { CarDB } from "@/hooks/useCars";
 import type { CarFilters } from "@/hooks/useAIChat";
 
+// Безопасное приведение к строке — защита от null/undefined/object из БД
+function safeStr(val: unknown): string {
+  if (typeof val === "string") return val;
+  return "";
+}
+
 export function applyFilters(cars: CarDB[], filters: CarFilters): CarDB[] {
   if (!filters || Object.keys(filters).length === 0) return cars;
 
@@ -12,52 +18,51 @@ export function applyFilters(cars: CarDB[], filters: CarFilters): CarDB[] {
 
     if (filters.brands && filters.brands.length > 0) {
       const matchesBrand = filters.brands.some(
-        (b) => car.brand.toLowerCase() === b.toLowerCase()
+        (b) => safeStr(car.brand).toLowerCase() === safeStr(b).toLowerCase()
       );
       if (!matchesBrand) return false;
     }
 
-    // Check drive_type across trims
     if (filters.drive) {
-      const hasDrive = car.car_trims?.some(
-        (t) => typeof t.drive_type === "string" &&
-          t.drive_type.toLowerCase().includes(filters.drive!.toLowerCase())
-      );
+      const driveLower = safeStr(filters.drive).toLowerCase();
+      const hasDrive = car.car_trims?.some((t) => {
+        const v = safeStr(t.drive_type).toLowerCase();
+        return v !== "" && v.includes(driveLower);
+      });
       if (!hasDrive) return false;
     }
 
-    // Check transmission across trims — exclude matching types
     if (filters.transmission) {
-      const val = filters.transmission.toLowerCase();
-      // Support "not:" prefix for exclusion e.g. "not:cvt,dct"
+      const val = safeStr(filters.transmission).toLowerCase();
+
       if (val.startsWith("not:")) {
-        const excluded = val.slice(4).split(",").map((s) => s.trim());
+        // Исключить машины где ВСЕ трансмиссии из запрещённого списка
+        const excluded = val.slice(4).split(",").map((s) => s.trim()).filter(Boolean);
         const allExcluded = car.car_trims?.every((t) => {
-          if (typeof t.transmission !== "string" || !t.transmission) return false;
-          const trans = t.transmission.toLowerCase();
+          const trans = safeStr(t.transmission).toLowerCase();
+          if (trans === "") return true; // null трансмиссию считаем исключённой
           return excluded.some((ex) => trans.includes(ex));
         });
         if (allExcluded) return false;
       } else {
-        const hasTrans = car.car_trims?.some(
-          (t) => typeof t.transmission === "string" &&
-            t.transmission.toLowerCase().includes(val)
-        );
+        const hasTrans = car.car_trims?.some((t) => {
+          const trans = safeStr(t.transmission).toLowerCase();
+          return trans !== "" && trans.includes(val);
+        });
         if (!hasTrans) return false;
       }
     }
 
-    // Clearance from cars table
     if (filters.clearance_min && car.clearance_mm) {
       if (car.clearance_mm < filters.clearance_min) return false;
     }
 
-    // Engine type across trims
     if (filters.engine_type) {
-      const hasEngine = car.car_trims?.some(
-        (t) => typeof t.engine === "string" &&
-          t.engine.toLowerCase().includes(filters.engine_type!.toLowerCase())
-      );
+      const engLower = safeStr(filters.engine_type).toLowerCase();
+      const hasEngine = car.car_trims?.some((t) => {
+        const eng = safeStr(t.engine).toLowerCase();
+        return eng !== "" && eng.includes(engLower);
+      });
       if (!hasEngine) return false;
     }
 
