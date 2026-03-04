@@ -5,13 +5,12 @@ import { Upload, Trash2, Loader2, ImagePlus, CheckCircle2, AlertCircle } from "l
 import { motion, AnimatePresence } from "framer-motion";
 
 const BUCKET = "car-images";
+// URL захардкожен здесь — не зависит от экспорта externalClient
 const SUPABASE_URL = "https://gefiyoyjfosvrvxybmhg.supabase.co";
+const STORAGE_PREFIX = `${SUPABASE_URL}/storage/v1/object/public/${BUCKET}/`;
 
-const getPublicUrl = (path: string) =>
-  `${SUPABASE_URL}/storage/v1/object/public/${BUCKET}/${path}`;
-
-// Проверяем — это наш Storage URL или внешний?
-const isStorageUrl = (url: string) => url.includes(SUPABASE_URL);
+const getPublicUrl = (path: string) => `${STORAGE_PREFIX}${path}`;
+const isStorageUrl = (url: string) => url.includes(SUPABASE_URL + "/storage");
 
 type Car = {
   id: number;
@@ -25,12 +24,13 @@ export default function AdminPhotos() {
   const qc = useQueryClient();
   const [selectedCarId, setSelectedCarId] = useState<number | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [progress, setProgress] = useState("");
   const [toast, setToast] = useState<{ msg: string; type: "ok" | "err" } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const showToast = (msg: string, type: "ok" | "err" = "ok") => {
     setToast({ msg, type });
-    setTimeout(() => setToast(null), 4000);
+    setTimeout(() => setToast(null), 5000);
   };
 
   const { data: cars = [], isLoading } = useQuery({
@@ -45,49 +45,55 @@ export default function AdminPhotos() {
     },
   });
 
-  const selectedCar = cars.find((c) => c.id === selectedCarId);
-
-  // Только Storage-URL показываем в сетке (не внешние)
+  const selectedCar = cars.find((c) => c.id === selectedCarId) ?? null;
   const storageImages: string[] = (selectedCar?.images ?? []).filter(isStorageUrl);
-  // Внешние URL — только как превью если своих нет
-  const externalPreview = selectedCar?.image_url && !isStorageUrl(selectedCar.image_url)
-    ? selectedCar.image_url
-    : null;
+  const externalPreview =
+    selectedCar?.image_url && !isStorageUrl(selectedCar.image_url)
+      ? selectedCar.image_url
+      : null;
 
   const handleUpload = async (files: FileList | null) => {
-    if (!files || !selectedCarId || !selectedCar) return;
-    if (files.length === 0) return;
+    if (!files || files.length === 0 || !selectedCarId || !selectedCar) return;
 
     setUploading(true);
     const newUrls: string[] = [];
     const errors: string[] = [];
+    const total = files.length;
 
-    for (const file of Array.from(files)) {
-      // Проверка размера
+    for (let i = 0; i < total; i++) {
+      const file = files[i];
+      setProgress(`Загружаю ${i + 1} из ${total}: ${file.name}`);
+
       if (file.size > 10 * 1024 * 1024) {
-        errors.push(`${file.name}: файл больше 10 МБ`);
+        errors.push(`${file.name}: больше 10 МБ`);
         continue;
       }
 
       const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
       const path = `${selectedCarId}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
 
-      const { data, error } = await externalSupabase.storage
+      console.log("Uploading to path:", path);
+
+      const { data: uploadData, error: uploadError } = await externalSupabase.storage
         .from(BUCKET)
         .upload(path, file, { cacheControl: "3600", upsert: false });
 
-      if (error) {
-        console.error("Upload error:", error);
-        errors.push(`${file.name}: ${error.message}`);
+      if (uploadError) {
+        console.error("Upload error:", uploadError);
+        errors.push(`${file.name}: ${uploadError.message}`);
       } else {
+        console.log("Uploaded successfully:", uploadData);
         newUrls.push(getPublicUrl(path));
       }
     }
 
+    setProgress("");
+
     if (newUrls.length > 0) {
-      // Сохраняем только Storage URL (фильтруем старые внешние)
-      const existingStorage = (selectedCar.images ?? []).filter(isStorageUrl);
-      const merged = [...existingStorage, ...newUrls];
+      const existing = (selectedCar.images ?? []).filter(isStorageUrl);
+      const merged = [...existing, ...newUrls];
+
+      console.log("Saving images array:", merged);
 
       const { error: updateError } = await externalSupabase
         .from("cars")
@@ -95,16 +101,19 @@ export default function AdminPhotos() {
         .eq("id", selectedCarId);
 
       if (updateError) {
-        showToast(`Ошибка сохранения: ${updateError.message}`, "err");
+        console.error("DB update error:", updateError);
+        showToast(`Ошибка сохранения в БД: ${updateError.message}`, "err");
       } else {
         await qc.invalidateQueries({ queryKey: ["admin-cars"] });
         await qc.invalidateQueries({ queryKey: ["cars"] });
-        showToast(`✅ Загружено ${newUrls.length} фото`, "ok");
+        showToast(`✅ Загружено ${newUrls.length} из ${total} фото`, "ok");
       }
+    } else if (errors.length > 0) {
+      showToast(`❌ Ошибки загрузки: ${errors.join(" | ")}`, "err");
     }
 
-    if (errors.length > 0) {
-      showToast(`⚠️ Ошибки: ${errors.join(", ")}`, "err");
+    if (errors.length > 0 && newUrls.length > 0) {
+      showToast(`⚠️ ${newUrls.length} загружено, ${errors.length} ошибок: ${errors[0]}`, "err");
     }
 
     if (fileInputRef.current) fileInputRef.current.value = "";
@@ -114,24 +123,18 @@ export default function AdminPhotos() {
   const handleDelete = async (url: string) => {
     if (!selectedCarId || !selectedCar) return;
 
-    // Удаляем из Storage только если это наш URL
     if (isStorageUrl(url)) {
-      const path = url
-        .replace(`${SUPABASE_URL}/storage/v1/object/public/${BUCKET}/`, "");
+      const path = url.replace(STORAGE_PREFIX, "");
       const { error } = await externalSupabase.storage.from(BUCKET).remove([path]);
       if (error) console.error("Storage delete error:", error);
     }
 
-    // Убираем из массива
-    const existingStorage = (selectedCar.images ?? []).filter(isStorageUrl);
-    const updated = existingStorage.filter((u) => u !== url);
+    const updated = (selectedCar.images ?? []).filter(isStorageUrl).filter((u) => u !== url);
+    const nextMain = updated[0] ?? selectedCar.image_url ?? null;
 
     await externalSupabase
       .from("cars")
-      .update({
-        images: updated,
-        image_url: updated[0] ?? selectedCar.image_url, // фоллбек на image_url
-      })
+      .update({ images: updated, image_url: nextMain })
       .eq("id", selectedCarId);
 
     await qc.invalidateQueries({ queryKey: ["admin-cars"] });
@@ -139,19 +142,17 @@ export default function AdminPhotos() {
     showToast("🗑️ Фото удалено", "ok");
   };
 
-  const totalPhotos = (car: Car) =>
-    (car.images ?? []).filter(isStorageUrl).length;
+  const totalPhotos = (car: Car) => (car.images ?? []).filter(isStorageUrl).length;
 
   return (
     <div className="min-h-screen bg-background p-4 md:p-8">
-      {/* Toast */}
       <AnimatePresence>
         {toast && (
           <motion.div
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
-            className={`fixed top-4 right-4 z-50 flex items-center gap-2 rounded-xl border px-4 py-3 text-sm font-medium shadow-lg ${
+            className={`fixed top-4 right-4 z-50 flex items-center gap-2 rounded-xl border px-4 py-3 text-sm font-medium shadow-lg max-w-sm ${
               toast.type === "err"
                 ? "bg-destructive/10 border-destructive/30 text-destructive"
                 : "bg-card border-border text-foreground"
@@ -160,7 +161,7 @@ export default function AdminPhotos() {
             {toast.type === "err"
               ? <AlertCircle className="h-4 w-4 shrink-0" />
               : <CheckCircle2 className="h-4 w-4 shrink-0 text-green-500" />}
-            {toast.msg}
+            <span>{toast.msg}</span>
           </motion.div>
         )}
       </AnimatePresence>
@@ -190,9 +191,7 @@ export default function AdminPhotos() {
                     key={car.id}
                     onClick={() => setSelectedCarId(car.id)}
                     className={`flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-left transition-colors ${
-                      active
-                        ? "bg-primary text-primary-foreground"
-                        : "hover:bg-secondary text-foreground"
+                      active ? "bg-primary text-primary-foreground" : "hover:bg-secondary text-foreground"
                     }`}
                   >
                     <div>
@@ -200,11 +199,9 @@ export default function AdminPhotos() {
                       <p className="text-sm font-semibold">{car.model}</p>
                     </div>
                     <span className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${
-                      active
-                        ? "bg-white/20 text-white"
-                        : count > 0
-                        ? "bg-primary/10 text-primary"
-                        : "bg-secondary text-muted-foreground"
+                      active ? "bg-white/20 text-white"
+                      : count > 0 ? "bg-primary/10 text-primary"
+                      : "bg-secondary text-muted-foreground"
                     }`}>
                       {count > 0 ? `${count} фото` : "нет фото"}
                     </span>
@@ -222,7 +219,6 @@ export default function AdminPhotos() {
               </div>
             ) : (
               <div className="space-y-4">
-                {/* Заголовок */}
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-xs text-muted-foreground">{selectedCar.brand}</p>
@@ -233,9 +229,7 @@ export default function AdminPhotos() {
                     disabled={uploading}
                     className="flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-60"
                   >
-                    {uploading
-                      ? <Loader2 className="h-4 w-4 animate-spin" />
-                      : <ImagePlus className="h-4 w-4" />}
+                    {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <ImagePlus className="h-4 w-4" />}
                     {uploading ? "Загружаю..." : "Добавить фото"}
                   </button>
                   <input
@@ -248,12 +242,10 @@ export default function AdminPhotos() {
                   />
                 </div>
 
-                {/* Drag-and-drop зона */}
+                {/* Drag-and-drop */}
                 <div
-                  className={`rounded-2xl border-2 border-dashed p-8 text-center transition-colors cursor-pointer ${
-                    uploading
-                      ? "border-primary/50 bg-primary/5"
-                      : "border-border hover:border-primary/50 hover:bg-primary/5"
+                  className={`cursor-pointer rounded-2xl border-2 border-dashed p-8 text-center transition-colors ${
+                    uploading ? "border-primary/50 bg-primary/5" : "border-border hover:border-primary/50 hover:bg-primary/5"
                   }`}
                   onClick={() => !uploading && fileInputRef.current?.click()}
                   onDragOver={(e) => e.preventDefault()}
@@ -262,32 +254,31 @@ export default function AdminPhotos() {
                   {uploading ? (
                     <div className="flex flex-col items-center gap-2">
                       <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                      <p className="text-sm text-primary font-medium">Загружаю фото...</p>
+                      <p className="text-sm font-medium text-primary">{progress || "Загружаю..."}</p>
                     </div>
                   ) : (
                     <>
                       <Upload className="mx-auto mb-2 h-8 w-8 text-muted-foreground" />
                       <p className="text-sm text-muted-foreground">
-                        Перетащи фото сюда или нажми <span className="text-primary font-medium">"Добавить фото"</span>
+                        Перетащи фото сюда или нажми{" "}
+                        <span className="font-medium text-primary">«Добавить фото»</span>
                       </p>
-                      <p className="mt-1 text-xs text-muted-foreground">
-                        JPG, PNG, WebP · до 10 МБ · можно несколько сразу
-                      </p>
+                      <p className="mt-1 text-xs text-muted-foreground">JPG, PNG, WebP · до 10 МБ · можно несколько сразу</p>
                     </>
                   )}
                 </div>
 
-                {/* Превью внешнего фото (если нет своих) */}
+                {/* Внешнее превью */}
                 {externalPreview && storageImages.length === 0 && (
                   <div className="rounded-xl border border-border bg-secondary/30 p-3">
                     <p className="mb-2 text-xs text-muted-foreground">
-                      ℹ️ Сейчас используется внешнее фото (от дилера). Загрузи своё — оно заменит его.
+                      ℹ️ Сейчас используется фото от дилера. Загрузи своё — оно заменит его.
                     </p>
                     <img
                       src={externalPreview}
                       alt="текущее фото"
                       className="h-24 w-auto rounded-lg object-cover opacity-60"
-                      onError={(e) => (e.currentTarget.style.display = "none")}
+                      onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }}
                     />
                   </div>
                 )}
@@ -333,7 +324,7 @@ export default function AdminPhotos() {
                       ))}
                     </div>
                     <p className="mt-2 text-xs text-muted-foreground">
-                      💡 Первое фото — главное в карточке. Наведи на фото чтобы удалить.
+                      💡 Первое фото — главное в карточке. Наведи чтобы удалить.
                     </p>
                   </div>
                 )}
