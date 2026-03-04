@@ -8,6 +8,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ThemeProvider } from "next-themes";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
+import AdminPhotos from "./pages/AdminPhotos";
 import DarkModeToggle from "./components/DarkModeToggle";
 
 import { ComparisonProvider, useComparison } from "./context/ComparisonContext";
@@ -163,6 +164,7 @@ const App = () => (
             <Header />
             <Routes>
               <Route path="/" element={<Index />} />
+              <Route path="/admin/photos" element={<AdminPhotos />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>
