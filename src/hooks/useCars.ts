@@ -47,6 +47,7 @@ export interface CarDB {
   last_verified_at: string | null;
   city: string | null;
   is_available: boolean;
+  images: string[] | null;
   car_trims: CarTrim[];
   min_price: number;
   best_promo_price: number | null;
