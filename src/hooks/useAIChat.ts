@@ -1,5 +1,5 @@
 import { useState, useCallback } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { externalSupabase } from "@/integrations/supabase/externalClient";
 import type { ChatMessage } from "@/components/AIChatPanel";
 
 export interface CarFilters {
@@ -35,7 +35,7 @@ export function useAIChat(userName?: string) {
       setUpsell(null);
 
       try {
-        const { data, error } = await supabase.functions.invoke("ai-car-consultant", {
+        const { data, error } = await externalSupabase.functions.invoke("ai-car-consultant", {
           body: {
             message: text,
             history: [...messages, userMsg].slice(-10),
